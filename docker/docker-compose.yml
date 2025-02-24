@@ -1,0 +1,29 @@
+version: "4"
+services:
+  vue_dev:
+    build:
+      context: ../frontend/
+      dockerfile: Dockerfile 
+    container_name: login-vue
+    volumes:
+      - ../frontend/src:/app
+      - vue_dist:/app/login-page/dist
+    working_dir: /app/login-page
+    command: ["yarn", "serve", "--port", "8081"]
+    ports:
+      - "5123:8081" 
+    stdin_open: true
+    tty: true
+
+  nginx_server:
+    image: nginx:latest
+    container_name: login-nginx-server
+    depends_on:
+      - vue_dev
+    volumes:
+      - ../frontend/src/login-page/dist:/usr/share/nginx/html
+      - ../nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf 
+    ports:
+      - "8081:80"
+volumes:
+  vue_dist:
