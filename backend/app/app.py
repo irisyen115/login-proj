@@ -15,16 +15,17 @@ DB_CONFIG = {
     "port": 5432
 }
 
-create_table_sql = """
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    role VARCHAR(20) DEFAULT 'user',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-"""
+# create_table_sql = """
+# CREATE TABLE IF NOT EXISTS users (
+#     id SERIAL PRIMARY KEY,
+#     username VARCHAR(50) UNIQUE NOT NULL,
+#     email VARCHAR(100) UNIQUE NOT NULL,
+#     password_hash TEXT NOT NULL,
+#     role VARCHAR(20) DEFAULT 'user',
+#     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+#     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP    
+# );
+# """
 
 # 測試連線
 try:
@@ -48,7 +49,7 @@ def login():
     password = data.get("password")
     email = data.get("email")
 
-    if not username or not password:
+    if not username or not password or not email:
         return jsonify({"error": "請提供帳號、密碼和電子郵件"}), 400
 
     try:
