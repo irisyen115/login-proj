@@ -85,7 +85,7 @@ def register():
         return jsonify({"message": "註冊成功"}), 201
 
     except psycopg2.Error as e:
-        return jsonify({"error": f"資料庫錯誤: {str(e)}"}), 500
+        return jsonify({"error": "帳號已存在"}), 500
 
     finally:
         if 'cur' in locals():

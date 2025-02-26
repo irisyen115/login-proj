@@ -3,7 +3,6 @@
     <div class="login-card">
       <h2>登入</h2>
       <form @submit.prevent="login">
-        <!-- <input v-model="email" type="email" placeholder="電子郵件" required /> -->
         <input v-model="username" placeholder="帳號" required />
         <input v-model="password" type="password" placeholder="密碼" required />
         <button type="submit" class="btn login-btn">登入</button>
@@ -20,7 +19,6 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
-// const email = ref("");
 const username = ref("");
 const password = ref("");
 const errorMessage = ref("");
