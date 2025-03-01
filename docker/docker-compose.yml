@@ -6,9 +6,9 @@ services:
       dockerfile: Dockerfile 
     container_name: login-vue
     volumes:
-      - ../frontend:/app
-      - /app/node_modules
-    working_dir: /app
+      - ../frontend:/fronted
+      - ../frontend/node_modules:/fronted/node_modules
+    working_dir: /fronted
     command: ["sh", "-c", "yarn add vue-cli-service && yarn serve --port 8081"]
     ports:
       - "5123:8081" 

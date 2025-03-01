@@ -1,23 +1,20 @@
-# 使用 Node.js 14 作為基底
-FROM node:14.18.2-buster
+# 使用 Node.js 18 作為基底映像
+FROM node:18
 
 # 設定工作目錄
-WORKDIR /app
+WORKDIR /fronted
 
-# 安裝必要的工具與 Vue CLI
-RUN apt-get update -y && \
-  apt-get upgrade -y && \
-  apt-get install -y \
-  build-essential \
-  curl \
-  nmap \
-  git \
-  nano \
-  && rm -rf /var/lib/apt/lists/*
+# 複製 package.json 和 yarn.lock 以安裝依賴
+COPY fronted/package*.json fronted/yarn.lock ./
 
-RUN npm install -g @vue/cli@4.5.15
+# 安裝專案依賴
+RUN yarn install
 
+# 複製專案程式碼到容器內
+COPY fronted .
+
+# 開放 8080 端口
+EXPOSE 8081
 
 # 啟動開發伺服器
 CMD ["yarn", "serve"]
-
