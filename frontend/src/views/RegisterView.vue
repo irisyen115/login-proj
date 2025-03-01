@@ -9,6 +9,8 @@
           <button @click.prevent="register" class="btn register-btn">註冊</button>
         </form>
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+
+        <p>已有帳號？<a @click.prevent="goToLogin" style="cursor: pointer; color: blue;">點此登入</a></p>
       </div>
     </div>
   </template>
@@ -46,6 +48,10 @@
       errorMessage.value = "伺服器錯誤，請稍後再試";
     }
   };
+
+  const goToLogin = () => {
+    router.push('/login');
+  };
   </script>
   
   <style scoped>
@@ -58,6 +64,7 @@
   height: 100vh; /* 讓區塊高度充滿整個視窗 */
   justify-content: center; /* 讓表單垂直置中 */
   position: relative;
+  background: linear-gradient(135deg, #ea669d, #764ba2); 
 }
 
 /* 卡片樣式 */

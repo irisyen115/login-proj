@@ -9,13 +9,15 @@
       </form>
       <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
 
-      <p class="register-link">尚未註冊？<a @click.prevent="goToRegister" style="cursor: pointer; color: blue;">點此註冊</a></p>
+      <p class="login-count" v-if="loginCount > 0">你已登入 {{ loginCount }} 次</p>
+
+      <p>尚未註冊？<a @click.prevent="goToRegister" style="cursor: pointer; color: blue;">點此註冊</a></p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -31,13 +33,18 @@ const login = async () => {
     const response = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: username.value, password: password.value }), // 加入電子郵件欄位
+      body: JSON.stringify({ username: username.value, password: password.value }),
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      localStorage.setItem("token", data.token); // 儲存後端提供的 token
+      // 儲存會話資訊（例如 token 和用戶名）
+      sessionStorage.setItem("token", data.token);
+      sessionStorage.setItem("username", username.value);
+      // 記錄登入時間
+      sessionStorage.setItem("loginTime", new Date().toISOString());
+      // localStorage.setItem("token", data.token); // 儲存後端提供的 token
       router.push("/dashboard"); // 跳轉到儀表板
     } else {
       errorMessage.value = data.error || "登入失敗";
@@ -55,17 +62,16 @@ const goToRegister = () => {
 
 <style scoped>
 
-/* 讓登入介面置中 */
 .login-container {
   display: flex;
   flex-direction: column;
-  align-items: center; /* 水平置中 */
-  height: 100vh; /* 讓區塊高度充滿整個視窗 */
-  justify-content: center; /* 讓表單垂直置中 */
+  align-items: center; 
+  height: 100vh; 
+  justify-content: center; 
   position: relative;
+  background: linear-gradient(135deg, #667eea, #764ba2); 
 }
 
-/* 卡片樣式 */
 .login-card {
   background: white;
   padding: 2rem;
@@ -76,17 +82,15 @@ const goToRegister = () => {
   margin-bottom: 10px;
 }
 
-/* 標題 */
 h2 {
   position: absolute;
-  top: 20px; /* 距離頁面頂部 20px */
+  top: 20px;
   left: 50%;
-  transform: translateX(-50%); /* 水平置中 */
+  transform: translateX(-50%);
   font-size: 2rem;
   font-weight: bold;
 }
 
-/* 輸入框樣式 */
 input {
   width: 100%;
   padding: 10px;
@@ -102,7 +106,6 @@ input:focus {
   box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 }
 
-/* 按鈕樣式 */
 .btn {
   width: 100%;
   padding: 10px;
@@ -131,7 +134,6 @@ input:focus {
   background: #1e7e34;
 }
 
-/* 錯誤訊息 */
 .error {
   margin-top: 10px;
   color: red;

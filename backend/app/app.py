@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask_bcrypt import Bcrypt
+from datetime import datetime
+
 
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
@@ -49,6 +51,12 @@ def login():
         user = cur.fetchone()
 
         if user and bcrypt.check_password_hash(user["password_hash"], password):
+            cur.execute(
+                "UPDATE users SET last_login = %s, login_count = login_count + 1 WHERE username = %s",
+                (datetime.now(), username)
+            )
+            conn.commit()
+
             return jsonify({"message": "登入成功", "user": username}), 200
         else:
             return jsonify({"error": "帳號或密碼錯誤"}), 401

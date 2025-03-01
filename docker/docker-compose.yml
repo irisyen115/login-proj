@@ -6,10 +6,10 @@ services:
       dockerfile: Dockerfile 
     container_name: login-vue
     volumes:
-      - ../frontend/src:/app
-      - vue_dist:/app/dist
+      - ../frontend:/app
+      - /app/node_modules
     working_dir: /app
-    command: ["yarn", "serve", "--port", "8081"]
+    command: ["sh", "-c", "yarn add vue-cli-service && yarn serve --port 8081"]
     ports:
       - "5123:8081" 
     stdin_open: true
@@ -23,7 +23,7 @@ services:
     volumes:
       - ../frontend/src/dist:/usr/share/nginx/html
       - ../nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf 
-      - ../nginx/ssl:/etc/nginx/ssl  # 這一行新增
+      - ../nginx/ssl:/etc/nginx/ssl  
     ports:
     - "8081:80"      # HTTP
     - "8443:443"      # HTTPS
@@ -38,7 +38,7 @@ services:
     depends_on:
       - pgsql
     ports:
-      - "5002:5000" # 假設您希望使用5000端口
+      - "5002:5000" 
 
   pgsql:
     image: postgres
@@ -62,5 +62,4 @@ services:
       - "8080:80"
 
 volumes:
-  vue_dist:
   pg_data:
