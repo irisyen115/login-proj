@@ -9,21 +9,21 @@
       </form>
       <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
 
-      <p class="login-count" v-if="loginCount > 0">你已登入 {{ loginCount }} 次</p>
-
       <p>尚未註冊？<a @click.prevent="goToRegister" style="cursor: pointer; color: blue;">點此註冊</a></p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
 const username = ref("");
 const password = ref("");
 const errorMessage = ref("");
+const lastLogin = ref(""); 
+const loginCount = ref(0); 
 
 // 登入處理函數
 const login = async () => {
@@ -39,14 +39,18 @@ const login = async () => {
     const data = await response.json();
 
     if (response.ok) {
-      // 儲存會話資訊（例如 token 和用戶名）
-      sessionStorage.setItem("token", data.token);
+      // 登入成功後的操作
       sessionStorage.setItem("username", username.value);
-      // 記錄登入時間
-      sessionStorage.setItem("loginTime", new Date().toISOString());
-      // localStorage.setItem("token", data.token); // 儲存後端提供的 token
+      sessionStorage.setItem("lastLogin", data.last_login); // 保存登入時間
+      sessionStorage.setItem("loginCount", data.login_count); // 保存登入次數
+      localStorage.setItem("token", data.token);
+
+      lastLogin.value = new Date(data.last_login).toLocaleString(); // 格式化時間
+      loginCount.value = data.login_count;
+
       router.push("/dashboard"); // 跳轉到儀表板
     } else {
+      // 顯示錯誤訊息
       errorMessage.value = data.error || "登入失敗";
     }
   } catch (error) {

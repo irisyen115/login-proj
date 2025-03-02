@@ -3,9 +3,11 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask_bcrypt import Bcrypt
 from datetime import datetime
+from flask_cors import CORS
 
 
 app = Flask(__name__)
+CORS(app)
 bcrypt = Bcrypt(app)
 
 # 資料庫設定
@@ -51,13 +53,20 @@ def login():
         user = cur.fetchone()
 
         if user and bcrypt.check_password_hash(user["password_hash"], password):
+            now = datetime.now()
             cur.execute(
-                "UPDATE users SET last_login = %s, login_count = login_count + 1 WHERE username = %s",
-                (datetime.now(), username)
+                "UPDATE users SET last_login = %s, login_count = login_count + 1 WHERE username = %s RETURNING last_login, login_count",
+                (now, username)
             )
+            updated_user = cur.fetchone()  # 取得更新後的數據
             conn.commit()
 
-            return jsonify({"message": "登入成功", "user": username}), 200
+            return jsonify({
+                "message": "登入成功",
+                "user": username,
+                "last_login": updated_user["last_login"],
+                "login_count": updated_user["login_count"]
+            }), 200
         else:
             return jsonify({"error": "帳號或密碼錯誤"}), 401
 
@@ -87,13 +96,16 @@ def register():
         cur = conn.cursor()
 
         # 插入資料庫
-        cur.execute("INSERT INTO users (username, password_hash) VALUES (%s, %s)", (username, password_hash))
+        cur.execute("INSERT INTO users (username, password_hash, last_login, login_count) VALUES (%s, %s, %s, %s)",
+                    (username, password_hash, None, 0))
         conn.commit()
-
         return jsonify({"message": "註冊成功"}), 201
 
-    except psycopg2.Error as e:
-        return jsonify({"error": "帳號已存在"}), 500
+    except psycopg2.IntegrityError:
+        return jsonify({"error": "帳號已存在"}), 400
+    
+    except Exception as e:
+        return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
 
     finally:
         if 'cur' in locals():

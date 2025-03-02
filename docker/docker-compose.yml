@@ -6,10 +6,10 @@ services:
       dockerfile: Dockerfile 
     container_name: login-vue
     volumes:
-      - ../frontend:/fronted
-      - ../frontend/node_modules:/fronted/node_modules
-    working_dir: /fronted
-    command: ["sh", "-c", "yarn add vue-cli-service && yarn serve --port 8081"]
+      - ../frontend/src:/app
+      # - vue_dist:/app/dist
+    working_dir: /app
+    command: ["yarn", "serve", "--port", "8081"]
     ports:
       - "5123:8081" 
     stdin_open: true
@@ -23,7 +23,7 @@ services:
     volumes:
       - ../frontend/src/dist:/usr/share/nginx/html
       - ../nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf 
-      - ../nginx/ssl:/etc/nginx/ssl  
+      - ../nginx/ssl:/etc/nginx/ssl  # 這一行新增
     ports:
     - "8081:80"      # HTTP
     - "8443:443"      # HTTPS
@@ -34,11 +34,11 @@ services:
       - ../backend/app:/app
     working_dir: /app
     command: |
-      bash -c "pip install flask psycopg2 && pip install flask-bcrypt && python app.py"
+      bash -c "pip install flask psycopg2 flask-bcrypt flask_cors && python app.py"
     depends_on:
       - pgsql
     ports:
-      - "5002:5000" 
+      - "5002:5000" # 假設您希望使用5000端口
 
   pgsql:
     image: postgres
@@ -62,4 +62,5 @@ services:
       - "8080:80"
 
 volumes:
+  # vue_dist:
   pg_data:
