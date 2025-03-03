@@ -1,9 +1,8 @@
 <template>
-    <div class="login-container">
-      <div class="login-card">
+    <div class="register-container">
+      <div class="register-card">
         <h2>註冊</h2>
         <form @submit.prevent="login">
-          <!-- <input v-model="email" type="email" placeholder="電子郵件" required /> -->
           <input v-model="username" placeholder="帳號" required />
           <input v-model="password" type="password" placeholder="密碼" required />
           <button @click.prevent="register" class="btn register-btn">註冊</button>
@@ -20,27 +19,27 @@
   import { useRouter } from "vue-router";
   
   const router = useRouter();
-  // const email = ref("");
   const username = ref("");
   const password = ref("");
   const errorMessage = ref("");
     
-  // 註冊處理函數
   const register = async () => {
-    errorMessage.value = ""; // 清除舊的錯誤訊息
+    errorMessage.value = "";
   
     try {
-      const response = await fetch("/api/register", {  // 註冊的 API 端點
+      const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username.value, password: password.value }), // 加入電子郵件欄位
+        body: JSON.stringify({ username: username.value, password: password.value }),
       });
   
       const data = await response.json();
   
       if (response.ok) {
-        localStorage.setItem("token", data.token); // 儲存後端提供的 token
-        router.push("/dashboard"); // 跳轉到儀表板
+        localStorage.setItem("token", data.token); 
+        sessionStorage.setItem("username", username.value);
+
+        router.push("/dashboard"); 
       } else {
         errorMessage.value = data.error || "註冊失敗";
       }
@@ -54,21 +53,19 @@
   };
   </script>
   
-  <style scoped>
-  
-  /* 讓登入介面置中 */
-  .login-container {
+<style scoped>
+
+.register-container {
   display: flex;
   flex-direction: column;
-  align-items: center; /* 水平置中 */
-  height: 100vh; /* 讓區塊高度充滿整個視窗 */
-  justify-content: center; /* 讓表單垂直置中 */
+  align-items: center;
+  height: 100vh;
+  justify-content: center;
   position: relative;
   background: linear-gradient(135deg, #ea669d, #764ba2); 
 }
 
-/* 卡片樣式 */
-.login-card {
+.register-card {
   background: white;
   padding: 2rem;
   border-radius: 12px;
@@ -78,17 +75,15 @@
   margin-bottom: 10px;
 }
 
-/* 標題 */
 h2 {
   position: absolute;
-  top: 20px; /* 距離頁面頂部 20px */
+  top: 20px;
   left: 50%;
-  transform: translateX(-50%); /* 水平置中 */
+  transform: translateX(-50%);
   font-size: 2rem;
   font-weight: bold;
 }
 
-/* 輸入框樣式 */
 input {
   width: 100%;
   padding: 10px;
@@ -99,45 +94,33 @@ input {
   transition: all 0.3s ease;
 }
   
-  input:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-  }
-  
-  /* 按鈕樣式 */
-  .btn {
-    width: 100%;
-    padding: 10px;
-    margin-top: 8px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-  
-  .login-btn {
-    background: #007bff;
-    color: white;
-  }
-  
-  .login-btn:hover {
-    background: #0056b3;
-  }
-  
-  .register-btn {
-    background: #28a745;
-    color: white;
-  }
-  
-  .register-btn:hover {
-    background: #1e7e34;
-  }
-  
-  /* 錯誤訊息 */
-  .error {
-    margin-top: 10px;
-    color: red;
-    font-weight: bold;
-  }
-  </style>
-  
+input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+.btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.register-btn {
+  background: #28a745;
+  color: white;
+}
+
+.register-btn:hover {
+  background: #1e7e34;
+}
+
+.error {
+  margin-top: 10px;
+  color: red;
+  font-weight: bold;
+}
+</style>

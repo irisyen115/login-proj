@@ -41,16 +41,15 @@ const login = async () => {
     if (response.ok) {
       // 登入成功後的操作
       sessionStorage.setItem("username", username.value);
-      sessionStorage.setItem("lastLogin", data.last_login); // 保存登入時間
-      sessionStorage.setItem("loginCount", data.login_count); // 保存登入次數
+      sessionStorage.setItem("lastLogin", data.last_login);
+      sessionStorage.setItem("loginCount", data.login_count);
       localStorage.setItem("token", data.token);
 
-      lastLogin.value = new Date(data.last_login).toLocaleString(); // 格式化時間
+      lastLogin.value = new Date(data.last_login).toLocaleString();
       loginCount.value = data.login_count;
 
-      router.push("/dashboard"); // 跳轉到儀表板
+      router.push("/dashboard");
     } else {
-      // 顯示錯誤訊息
       errorMessage.value = data.error || "登入失敗";
     }
   } catch (error) {
@@ -127,15 +126,6 @@ input:focus {
 
 .login-btn:hover {
   background: #0056b3;
-}
-
-.register-btn {
-  background: #28a745;
-  color: white;
-}
-
-.register-btn:hover {
-  background: #1e7e34;
 }
 
 .error {
