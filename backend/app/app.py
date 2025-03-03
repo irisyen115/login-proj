@@ -10,7 +10,6 @@ app = Flask(__name__)
 CORS(app)
 bcrypt = Bcrypt(app)
 
-# 資料庫設定
 DB_CONFIG = {
     "dbname": "mydatabase",
     "user": "user",
@@ -19,7 +18,6 @@ DB_CONFIG = {
     "port": 5432
 }
 
-# 測試連線
 try:
     conn = psycopg2.connect(**DB_CONFIG)
     conn.close()
@@ -48,7 +46,6 @@ def login():
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        # 查詢使用者
         cur.execute("SELECT * FROM users WHERE username = %s", (username,))
         user = cur.fetchone()
 
@@ -58,7 +55,7 @@ def login():
                 "UPDATE users SET last_login = %s, login_count = login_count + 1 WHERE username = %s RETURNING last_login, login_count",
                 (now, username)
             )
-            updated_user = cur.fetchone()  # 取得更新後的數據
+            updated_user = cur.fetchone()
             conn.commit()
 
             return jsonify({
@@ -88,14 +85,12 @@ def register():
     if not username or not password:
         return jsonify({"error": "請提供帳號和密碼"}), 400
 
-    # 密碼加密
     password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor()
 
-        # 插入資料庫
         cur.execute("INSERT INTO users (username, password_hash, last_login, login_count) VALUES (%s, %s, %s, %s)",
                     (username, password_hash, None, 0))
         conn.commit()
