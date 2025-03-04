@@ -6,6 +6,7 @@ COPY package.json yarn.lock ./
 
 RUN yarn set version berry
 RUN yarn install 
+RUN yarn add axios
 
 COPY . .
 

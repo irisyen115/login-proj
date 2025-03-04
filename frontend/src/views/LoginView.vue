@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, nextTick } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -27,28 +27,38 @@ const loginCount = ref(0);
 
 // 登入處理函數
 const login = async () => {
-  errorMessage.value = ""; // 清除舊的錯誤訊息
+  errorMessage.value = "";
 
   try {
+    console.log("發送登入請求");
     const response = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: username.value, password: password.value }),
+      mode: "cors",
+      credentials: "include"
     });
 
+    console.log("API 回應狀態碼:", response.status);
     const data = await response.json();
 
     if (response.ok) {
-      // 登入成功後的操作
+      localStorage.setItem("token", data.token);
+      sessionStorage.setItem('role', data.role); 
       sessionStorage.setItem("username", username.value);
       sessionStorage.setItem("lastLogin", data.last_login);
       sessionStorage.setItem("loginCount", data.login_count);
-      localStorage.setItem("token", data.token);
 
       lastLogin.value = new Date(data.last_login).toLocaleString();
       loginCount.value = data.login_count;
 
-      router.push("/dashboard");
+      console.log("登入成功，準備跳轉到 /dashboard");
+      
+      await nextTick();
+      console.log("儲存的 token:", localStorage.getItem("token"));
+
+      await router.push("/dashboard");
+      console.log("已跳轉到 /dashboard");
     } else {
       errorMessage.value = data.error || "登入失敗";
     }
@@ -75,9 +85,10 @@ const goToRegister = () => {
   background: linear-gradient(135deg, #667eea, #764ba2); 
 }
 
-.login-card {
+.login-card {  
   background: white;
   padding: 2rem;
+  text-align: center;
   border-radius: 12px;
   box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1);
   text-align: center;
@@ -86,10 +97,6 @@ const goToRegister = () => {
 }
 
 h2 {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
   font-size: 2rem;
   font-weight: bold;
 }
@@ -102,10 +109,15 @@ input {
   border-radius: 8px;
   outline: none;
   transition: all 0.3s ease;
+  box-sizing: border-box; /* 確保 padding 不影響 width */
 }
 
 input:focus {
   border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  display: flex;
+  border-color: #007bff;
+  justify-content: center;
   box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 }
 
@@ -133,4 +145,5 @@ input:focus {
   color: red;
   font-weight: bold;
 }
+
 </style>

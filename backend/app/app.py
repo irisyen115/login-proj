@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask_bcrypt import Bcrypt
@@ -31,7 +31,58 @@ def hello_world():
 
 @app.route('/status')
 def status():
-    return jsonify({"status": "ok"})
+    response = make_response(jsonify({"status": "ok"}))
+    response.set_cookie("user_session", "123456", httponly=True, secure=True, samesite="Strict")
+    return response
+
+
+@app.route('/logout')
+def logout():
+    response = make_response(jsonify({"message": "登出成功"}))
+    response.set_cookie("user_session", "", expires=0)  # 清除 Cookie
+    return response
+        
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
+    role = data.get("role", "user")  # 默認角色為"user"
+
+    if not username or not password:
+        return jsonify({"error": "請提供帳號和密碼"}), 400
+
+    password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # 檢查帳號是否已存在
+        cur.execute("SELECT username FROM users WHERE username = %s", (username,))
+        if cur.fetchone():
+            return jsonify({"error": "帳號已存在"}), 400
+
+        # 插入新使用者
+        cur.execute("INSERT INTO users (username, password_hash, last_login, login_count, role) VALUES (%s, %s, %s, %s, %s)",
+                    (username, password_hash, None, 0, role))
+        conn.commit()
+
+        # 註冊成功後，自動登入並設定 session cookie
+        response = make_response(jsonify({"message": "註冊成功", "user": username, "role": role}))
+        response.set_cookie("user_session", username, httponly=True, secure=True, samesite="Strict")
+        response.set_cookie("role", role, httponly=True, secure=True, samesite="Strict")
+
+        return response, 201
+
+    except Exception as e:
+        return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
+
+    finally:
+        if 'cur' in locals():
+            cur.close()
+        if 'conn' in locals():
+            conn.close()
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -49,25 +100,38 @@ def login():
         cur.execute("SELECT * FROM users WHERE username = %s", (username,))
         user = cur.fetchone()
 
-        if user and bcrypt.check_password_hash(user["password_hash"], password):
+        if not user:
+            return jsonify({"error": "帳號不存在"}), 404
+        
+        print(f"用戶資訊: {user}")  # 確保查詢到的用戶資料正確
+
+        if not user["password_hash"]:
+            return jsonify({"error": "密碼欄位錯誤"}), 500
+
+        if bcrypt.check_password_hash(user["password_hash"], password):
             now = datetime.now()
             cur.execute(
-                "UPDATE users SET last_login = %s, login_count = login_count + 1 WHERE username = %s RETURNING last_login, login_count",
+                "UPDATE users SET last_login = %s, login_count = login_count + 1 WHERE username = %s RETURNING last_login, login_count, role",
                 (now, username)
             )
             updated_user = cur.fetchone()
             conn.commit()
 
-            return jsonify({
+            response = make_response(jsonify({
                 "message": "登入成功",
                 "user": username,
+                "role": updated_user["role"],
                 "last_login": updated_user["last_login"],
                 "login_count": updated_user["login_count"]
-            }), 200
-        else:
-            return jsonify({"error": "帳號或密碼錯誤"}), 401
+            }))
+            response.set_cookie("user_session", username, httponly=True, secure=True, samesite="Strict")
+            response.set_cookie("role", updated_user["role"], httponly=True, secure=True, samesite="Strict")
+            return response
+
+        return jsonify({"error": "帳號或密碼錯誤"}), 401
 
     except Exception as e:
+        print(f"發生錯誤: {str(e)}")
         return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
 
     finally:
@@ -75,39 +139,40 @@ def login():
             cur.close()
         if 'conn' in locals():
             conn.close()
-        
-@app.route('/register', methods=['POST'])
-def register():
-    data = request.json
-    username = data.get("username")
-    password = data.get("password")
+            
+@app.route('/users', methods=['GET'])
+def get_users():
+    # role = request.cookies.get("role", "").strip()
+    username = request.cookies.get("user_session", "").strip()
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+    user = cur.fetchone()
+    role = user['role']
 
-    if not username or not password:
-        return jsonify({"error": "請提供帳號和密碼"}), 400
-
-    password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+    if not role or not username:
+        return jsonify({"error": "未授權"}), 401
 
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        cur = conn.cursor()
 
-        cur.execute("INSERT INTO users (username, password_hash, last_login, login_count) VALUES (%s, %s, %s, %s)",
-                    (username, password_hash, None, 0))
-        conn.commit()
-        return jsonify({"message": "註冊成功"}), 201
+        if role == "admin":
+            cur.execute("SELECT id, username, last_login, login_count, role FROM users")
+        elif role == "user":
+            cur.execute("SELECT id, username, last_login, login_count, role FROM users WHERE username = %s", (username,))
+        else:
+            return jsonify({"error": "無法識別角色"}), 403
 
-    except psycopg2.IntegrityError:
-        return jsonify({"error": "帳號已存在"}), 400
-    
+        users = cur.fetchall()
+        return jsonify(users)
+
     except Exception as e:
         return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
 
     finally:
-        if 'cur' in locals():
+        if cur:
             cur.close()
-        if 'conn' in locals():
+        if conn:
             conn.close()
-
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
