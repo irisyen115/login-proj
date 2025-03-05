@@ -7,7 +7,6 @@ services:
     container_name: login-vue
     volumes:
       - ../frontend/src:/app
-      # - vue_dist:/app/dist
     working_dir: /app
     command: ["yarn", "serve", "--port", "8081"]
     ports:
@@ -62,5 +61,4 @@ services:
       - "8080:80"
 
 volumes:
-  # vue_dist:
   pg_data:

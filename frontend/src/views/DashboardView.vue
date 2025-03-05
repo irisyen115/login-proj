@@ -76,8 +76,7 @@ const fetchUserData = async () => {
       withCredentials: true
     });
 
-    // 將從 API 返回的資料賦值給 users
-    users.value = response.data; // 更新 users 資料    
+    users.value = response.data;   
     
     for (let i = 0; i < users.value.length; i++) {
       users.value[i].last_login = users.value[i].last_login ? new Date(users.value[i].last_login).toLocaleString() : "無登入記錄";

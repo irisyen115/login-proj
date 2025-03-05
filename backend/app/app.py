@@ -39,7 +39,7 @@ def status():
 @app.route('/logout')
 def logout():
     response = make_response(jsonify({"message": "登出成功"}))
-    response.set_cookie("user_session", "", expires=0)  # 清除 Cookie
+    response.set_cookie("user_session", "", expires=0)
     return response
         
 @app.route('/register', methods=['POST'])
@@ -47,7 +47,6 @@ def register():
     data = request.json
     username = data.get("username")
     password = data.get("password")
-    role = data.get("role", "user")  # 默認角色為"user"
 
     if not username or not password:
         return jsonify({"error": "請提供帳號和密碼"}), 400
@@ -58,20 +57,17 @@ def register():
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        # 檢查帳號是否已存在
         cur.execute("SELECT username FROM users WHERE username = %s", (username,))
         if cur.fetchone():
             return jsonify({"error": "帳號已存在"}), 400
 
-        # 插入新使用者
-        cur.execute("INSERT INTO users (username, password_hash, last_login, login_count, role) VALUES (%s, %s, %s, %s, %s)",
-                    (username, password_hash, None, 0, role))
+        cur.execute("INSERT INTO users (username, password_hash, last_login, login_count) VALUES (%s, %s, %s, %s)",
+                    (username, password_hash, None, 0))
         conn.commit()
 
-        # 註冊成功後，自動登入並設定 session cookie
-        response = make_response(jsonify({"message": "註冊成功", "user": username, "role": role}))
+        response = make_response(jsonify({"message": "註冊成功", "user": username, "role": "user"}))
         response.set_cookie("user_session", username, httponly=True, secure=True, samesite="Strict")
-        response.set_cookie("role", role, httponly=True, secure=True, samesite="Strict")
+        response.set_cookie("role", "user", httponly=True, secure=True, samesite="Strict")
 
         return response, 201
 
@@ -103,7 +99,6 @@ def login():
         if not user:
             return jsonify({"error": "帳號不存在"}), 404
         
-        print(f"用戶資訊: {user}")  # 確保查詢到的用戶資料正確
 
         if not user["password_hash"]:
             return jsonify({"error": "密碼欄位錯誤"}), 500
@@ -142,7 +137,6 @@ def login():
             
 @app.route('/users', methods=['GET'])
 def get_users():
-    # role = request.cookies.get("role", "").strip()
     username = request.cookies.get("user_session", "").strip()
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor(cursor_factory=RealDictCursor)

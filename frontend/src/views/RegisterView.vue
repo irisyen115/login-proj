@@ -46,6 +46,7 @@ const register = async () => {
     const data = await response.json();    
 
     if (response.ok) {
+      localStorage.setItem("token", data.token);
       sessionStorage.setItem("username", username.value);
       router.push('/dashboard');
 
@@ -94,6 +95,7 @@ input {
   border: 1px solid #ddd;
   border-radius: 8px;
   outline: none;
+  box-sizing: border-box;
 }
 
 input:focus {

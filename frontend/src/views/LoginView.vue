@@ -25,7 +25,6 @@ const errorMessage = ref("");
 const lastLogin = ref(""); 
 const loginCount = ref(0); 
 
-// 登入處理函數
 const login = async () => {
   errorMessage.value = "";
 
@@ -109,7 +108,7 @@ input {
   border-radius: 8px;
   outline: none;
   transition: all 0.3s ease;
-  box-sizing: border-box; /* 確保 padding 不影響 width */
+  box-sizing: border-box;
 }
 
 input:focus {
