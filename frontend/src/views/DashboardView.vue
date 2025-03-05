@@ -38,8 +38,8 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
 
+const axios = require('axios').default;
 const router = useRouter();
 const username = ref('');
 const lastLogin = ref(null); 

@@ -5,9 +5,11 @@
   "scripts": {
     "serve": "vue-cli-service serve --watch-poll",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "test:unit": "jest"
   },
   "dependencies": {
+    "@achrinza/node-ipc": "^10.1.11",
     "axios": "^1.8.1",
     "core-js": "^3.6.5",
     "lodash": "^4.17.21",
@@ -15,15 +17,21 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.26.9",
     "@vue/cli-plugin-babel": "~4.5.15",
     "@vue/cli-plugin-eslint": "~4.5.15",
+    "@vue/cli-plugin-unit-jest": "~5.0.0",
     "@vue/cli-service": "~4.5.15",
     "@vue/compiler-sfc": "^3.5.13",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/vue3-jest": "^27.0.0",
     "babel-eslint": "^10.1.0",
+    "babel-jest": "^26.6.3",
     "eslint": "^6.8.0",
     "eslint-plugin-vue": "^9.32.0",
-    "vue-loader": "^17.3.1",
-    "vue-template-compiler": "^2.6.11"
+    "jest": "^26.6.3",
+    "vue-jest": "^5.0.0-alpha.10",
+    "vue-loader": "^17.3.1"
   },
   "eslintConfig": {
     "root": true,
@@ -43,5 +51,20 @@
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "jest": {
+    "transform": {
+      "^.+\\.vue$": "vue-jest",
+      "^.+\\.js$": "babel-jest"
+    },
+    "moduleFileExtensions": [
+      "js",
+      "vue",
+      "json"
+    ],
+    "testMatch": [
+      "**/tests/**/*.spec.js",
+      "**/?(*.)+(spec|test).js"
+    ]
+  }
 }

@@ -4,12 +4,13 @@ WORKDIR /app
 
 COPY package.json yarn.lock ./
 
-RUN yarn set version berry
-RUN yarn install 
-RUN yarn add axios
+RUN yarn install
 
 COPY . .
 
 EXPOSE 8081
 
+RUN yarn add jest @vue/test-utils
+
 CMD ["yarn", "serve"]
+
