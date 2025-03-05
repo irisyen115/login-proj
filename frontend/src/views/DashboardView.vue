@@ -10,23 +10,6 @@
     <div v-else-if="role === 'user'">
       <h3>普通用戶功能</h3>
       <p>您是普通用戶，您只能查看自己的資料。</p>
-      <!-- 顯示用戶的個人資料表格 -->
-      <!-- <table class="dash-table">
-        <thead>
-          <tr>
-            <th>用戶</th>
-            <td>{{ username }}</td>
-          </tr>
-          <tr>
-            <th>最後登入時間</th>
-            <td>{{ lastLogin }}</td>
-          </tr>
-          <tr>
-            <th>登入次數</th>
-            <td>{{ loginCount }}</td>
-          </tr>
-        </thead>
-      </table> -->
     </div>
 
     <table class="dash-table">
