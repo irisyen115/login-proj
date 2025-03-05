@@ -11,12 +11,10 @@ class TestAPI(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """ 在所有測試前執行一次，用來設定測試環境 """
         cls.client = app.test_client()
         cls.client.testing = True
 
     def test_status(self):
-        """ 測試 /status 路徑 """
         response = self.client.get('/status')
         self.assertEqual(response.status_code, 200) 
         data = json.loads(response.data)
