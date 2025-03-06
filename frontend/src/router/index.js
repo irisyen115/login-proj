@@ -32,20 +32,11 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = localStorage.getItem('token');
-  console.log("目前 token:", isAuthenticated); 
-  if (!isAuthenticated && to.name !== 'login' && to.name !== 'register') {
-    console.log("未認證，跳轉回登入頁面");
-    next('/login');
-  } else {
-    console.log("已認證，正常跳轉");
-    next();
-  }
+router.beforeEach((to, next) => {
 
   const token = localStorage.getItem("token");
 
-  if (token && (to.path === '/login' || to.path === '/register')) {
+  if (token && (to.name !== 'dashboard' )) {
     next('/dashboard');
   } else {
     next();

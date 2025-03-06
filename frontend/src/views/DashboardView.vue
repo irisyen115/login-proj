@@ -46,6 +46,7 @@ const lastLogin = ref(null);
 const loginCount = ref(null);
 const role = ref(null);
 const users = ref([]);
+const token = localStorage.getItem("token");
 
 const logout = () => {
   localStorage.removeItem('token');
@@ -56,11 +57,11 @@ const logout = () => {
 };
 
 const fetchUserData = async () => {
-  const token = localStorage.getItem("token");
   if (!token) {
     router.push('/');
     return;
   }
+
   username.value = sessionStorage.getItem('username');
   const storedLoginTime = sessionStorage.getItem('lastLogin');
   const storedLoginCount = sessionStorage.getItem('loginCount');
@@ -158,6 +159,8 @@ button {
   border: none;
   border-radius: 5px;
   color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+
 }
 
 button:hover {
