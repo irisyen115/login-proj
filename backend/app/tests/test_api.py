@@ -104,6 +104,7 @@ class TestAPI(unittest.TestCase):
         json_data = json.loads(response.data)
         self.assertIsInstance(json_data, list) 
         self.assertEqual(len(json_data), 1)  
+        
     def test_get_users_user_role(self):
         data = {
             "username": "user1",

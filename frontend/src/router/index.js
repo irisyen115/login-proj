@@ -42,6 +42,15 @@ router.beforeEach((to, from, next) => {
     console.log("已認證，正常跳轉");
     next();
   }
+
+  const token = localStorage.getItem("token");
+
+  if (token && (to.path === '/login' || to.path === '/register')) {
+    next('/dashboard');
+  } else {
+    next();
+  }
+
 });
 
 
