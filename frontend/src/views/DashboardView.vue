@@ -46,23 +46,25 @@ const lastLogin = ref(null);
 const loginCount = ref(null);
 const role = ref(null);
 const users = ref([]);
+const token = localStorage.getItem("token");
 
 const logout = () => {
   localStorage.removeItem('token');
   sessionStorage.clear(); 
-  console.log("登出後 role:", sessionStorage.getItem('role')); // 確認是否為 null
+  console.log("登出後 role:", sessionStorage.getItem('role'));
 
   router.push('/'); 
 };
 
 const fetchUserData = async () => {
-  const token = localStorage.getItem("token");
-  console.log("目前 token:", token);
+  if (!token) {
+    router.push('/');
+    return;
+  }
 
   username.value = sessionStorage.getItem('username');
   const storedLoginTime = sessionStorage.getItem('lastLogin');
   const storedLoginCount = sessionStorage.getItem('loginCount');
-
   role.value = sessionStorage.getItem('role') || 'user';
 
   lastLogin.value = storedLoginTime ? new Date(storedLoginTime).toLocaleString() : "無登入記錄";
@@ -74,6 +76,8 @@ const fetchUserData = async () => {
     const response = await axios.get('/api/users', {
       withCredentials: true
     });
+
+
 
     users.value = response.data;   
     
@@ -113,6 +117,8 @@ body, html {
   align-items: center;
   justify-content: center;
   min-height: 100vh; 
+  max-width: 900px; 
+  margin: 0 auto;
   padding: 20px;
   box-sizing: border-box;
   position: relative;
@@ -153,6 +159,8 @@ button {
   border: none;
   border-radius: 5px;
   color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+
 }
 
 button:hover {

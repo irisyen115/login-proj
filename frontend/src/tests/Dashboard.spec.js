@@ -4,7 +4,7 @@ import Dashboard from '../views/DashboardView.vue';
 import axios from 'axios';
 import { nextTick } from 'vue';
 
-jest.mock('axios'); // Mock Axios
+jest.mock('axios');
 
 describe('Dashboard.vue', () => {
   let wrapper;
@@ -47,7 +47,6 @@ describe('Dashboard.vue', () => {
   });
 
   it('應該顯示普通用戶功能', async () => {
-    // 模擬普通使用者
     Storage.prototype.getItem = jest.fn((key) => {
       if (key === 'role') return 'user';
       return null;
@@ -56,13 +55,11 @@ describe('Dashboard.vue', () => {
     const wrapper = mount(Dashboard);
     await wrapper.vm.$nextTick();
 
-    // 檢查是否顯示普通用戶內容
     expect(wrapper.find('h3').text()).toBe('普通用戶功能');
     expect(wrapper.text()).toContain('您是普通用戶，您只能查看自己的資料。');
   });
 
   it('應該顯示管理員功能', async () => {
-    // 模擬管理員
     Storage.prototype.getItem = jest.fn((key) => {
       if (key === 'role') return 'admin';
       return null;
@@ -71,7 +68,6 @@ describe('Dashboard.vue', () => {
     const wrapper = mount(Dashboard);
     await wrapper.vm.$nextTick();
 
-    // 檢查是否顯示管理員內容
     expect(wrapper.find('h3').text()).toBe('管理員功能');
     expect(wrapper.text()).toContain('您擁有管理員權限，可以查看所有使用者的資料。');
   });

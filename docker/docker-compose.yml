@@ -33,7 +33,7 @@ services:
       - ../backend/app:/app
     working_dir: /app
     command: |
-      bash -c "pip install flask psycopg2 flask-bcrypt flask_cors && python app.py"
+      bash -c "pip install flask psycopg2 flask-bcrypt flask_cors pytest && python app.py"
     depends_on:
       - pgsql
     ports:
