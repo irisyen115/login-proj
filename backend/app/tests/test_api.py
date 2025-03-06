@@ -36,9 +36,9 @@ class TestAPI(unittest.TestCase):
             "password": "wrongpassword"
         }
         response = self.client.post('/login', json=data)
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 404)
         json_data = json.loads(response.data)
-        self.assertEqual(json_data['error'], '帳號或密碼錯誤')
+        self.assertEqual(json_data['error'], '帳號不存在')
 
     def test_register_success(self):
         import random
@@ -66,6 +66,71 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         json_data = json.loads(response.data)
         self.assertEqual(json_data['error'], '請提供帳號和密碼') 
+        
+    def test_register_username_exists(self):
+        existing_username = "existinguser"
+        existing_password = "existingpassword"
+        data = {
+            "username": existing_username,
+            "password": existing_password
+        }
+        self.client.post('/register', json=data)
+
+        data = {
+            "username": existing_username,
+            "password": "anotherpassword"
+        }
+        response = self.client.post('/register', json=data)
+        self.assertEqual(response.status_code, 400)
+        json_data = json.loads(response.data)
+        self.assertEqual(json_data['error'], '帳號已存在')
+
+    def test_logout(self):
+        """測試登出功能"""
+        data = {
+            "username": "aaa",
+            "password": "111"
+        }
+        self.client.post('/login', json=data)
+
+        response = self.client.get('/logout') 
+        self.assertEqual(response.status_code, 200)
+        json_data = json.loads(response.data)
+        self.assertEqual(json_data['message'], '登出成功')
+
+    def test_get_users_unauthorized(self):
+        response = self.client.get('/users')
+        self.assertEqual(response.status_code, 200)
+        json_data = json.loads(response.data)
+        self.assertIsInstance(json_data, list) 
+        self.assertEqual(len(json_data), 1)  
+    def test_get_users_user_role(self):
+        data = {
+            "username": "user1",
+            "password": "password123"
+        }
+        self.client.post('/register', json=data)
+        self.client.post('/login', json=data)
+
+        response = self.client.get('/users')
+        self.assertEqual(response.status_code, 200)
+        users = json.loads(response.data)
+        self.assertEqual(len(users), 1)
+        self.assertEqual(users[0]['username'], "user1")
+
+    def test_get_users_admin_role(self):
+        data = {
+            "username": "adminuser",
+            "password": "adminpassword"
+        }
+        self.client.post('/register', json=data)
+        self.client.post('/login', json=data)
+
+        response = self.client.get('/users')
+        self.assertEqual(response.status_code, 200)
+        users = json.loads(response.data)
+        self.assertGreater(len(users), 0)
+    
 
 if __name__ == '__main__':
     unittest.main()

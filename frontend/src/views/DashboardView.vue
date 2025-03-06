@@ -49,10 +49,9 @@ const users = ref([]);
 
 const logout = () => {
   localStorage.removeItem('token');
-  sessionStorage.removeItem('username');
-  sessionStorage.removeItem('lastLogin');
-  sessionStorage.removeItem('loginCount');
-  sessionStorage.removeItem('role'); 
+  sessionStorage.clear(); 
+  console.log("登出後 role:", sessionStorage.getItem('role')); // 確認是否為 null
+
   router.push('/'); 
 };
 
