@@ -200,7 +200,7 @@ def upload_file():
         
         file.save(filepath)
         
-        cur.execute("UPDATE users SET profile_image = %s WHERE id = %s", (filepath, user_id))
+        cur.execute("UPDATE users SET profile_image = %s, picture_name = %s WHERE id = %s", (filepath, filename, user_id))
         conn.commit()
         
         return jsonify({"message": "照片上傳成功", "file_path": filepath})
@@ -214,9 +214,49 @@ def upload_file():
         if 'conn' in locals():
             conn.close()
             
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+@app.route('/get_user_image', methods=['GET'])
+def get_user_image():
+    username = request.cookies.get("user_session", "").strip()
+
+    if not username:
+        return jsonify({"error": "未授權"}), 401
+
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
+
+    try:
+        cur.execute("SELECT profile_image, picture_name FROM users WHERE username = %s", (username,))
+        user = cur.fetchone()
+        app.logger.error(f"username: {username}")
+
+        if not user:
+            return jsonify({"error": "用戶未找到"}), 404
+
+        profile_image = user['profile_image']
+
+        if profile_image:
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], profile_image)
+
+            if os.path.exists(image_path):
+                app.logger.error(f"Image Path:, {profile_image}")
+                x = send_from_directory(app.config['UPLOAD_FOLDER'], user['picture_name'])
+                app.logger.error(f"response:, {x}")
+                return x
+            else:
+                return jsonify({"error": "圖片檔案不存在"}), 404
+        else:
+            app.logger.error("Image Path:", image_path)
+            
+            return jsonify({"error": "用戶未設定圖片"}), 404
+
+    except Exception as e:
+        return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
+
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
             
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)

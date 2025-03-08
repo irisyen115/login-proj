@@ -1,10 +1,11 @@
 <template>
     <nav class="navbar">
         <ul class="navbar-list">
+            <li>{{ username }}</li>
             <li><button @click="logout" class="navbar-item logout-btn">登出</button></li>
         </ul>
         <div class="profileImage">
-            <img v-if="profileImage" :src="`/uploads/${profileImage}`" alt="profileImage" class="profile-image" />
+            <img v-if="profileImage" :src="profileImage" alt="使用者頭像" class="profile-image" />
             <div v-else class="default-avatar">無頭像</div>
         </div>
     </nav>
@@ -23,26 +24,25 @@
     router.push('/');
   };
   
-  const profileImage = ref('');
-  const users = ref([]);
-  const user = ref([]);
+  const profileImage = ref(''); 
+  const username = ref(sessionStorage.getItem('username'));  
 
-  onMounted(async () => {
-    try {
-        const response = await axios.get('/api/users');  
-        console.log("API 回傳的 data:", response.data);
-        users.value = response.data;
-        
-        if (Array.isArray(users.value) && users.value.length > 0) {  
-          user.value = users.value[0];              
-          profileImage.value = user.value.profile_image ? `/uploads/${user.value.profile_image}` : null;
-          console.log("user 為", user.value); 
-        }
-    } catch (error) {
-        console.error('登入失敗:', error);
+  const fetchUserImage = async () => {
+  try {
+    const response = await axios.get('/get_user_image', { responseType: 'blob', withCredentials: true });
+    console.log("API 回傳的資料:", response);
+
+    if (response.status === 200) {
+      const imageUrl = URL.createObjectURL(response.data);
+      profileImage.value = imageUrl;
     }
-});
+  } catch (error) {
+    console.error('取得用戶圖片失敗:', error);
+    profileImage.value = ''; 
+  }
+};
 
+onMounted(fetchUserImage);
 </script>
 
 <style scoped>
