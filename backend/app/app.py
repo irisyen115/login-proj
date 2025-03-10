@@ -153,7 +153,6 @@ def get_users():
         return jsonify({"error": "未授權"}), 401
 
     try:
-
         if role == "admin":
             cur.execute("SELECT id, username, last_login, login_count, role FROM users")
         elif role == "user":
@@ -210,6 +209,29 @@ def upload_file():
     except Exception as e:
         return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
     
+@app.route('/reset-password', methods=['POST'])
+def reset_password_with_token():
+    data = request.json
+    username = data.get("username")
+    new_password = data.get("password")
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    if not username or not new_password:
+        return jsonify({"error": "請提供帳號和新密碼"}), 400
+    try:
+        cur.execute("SELECT username FROM users WHERE username = %s", (username,))
+        user = cur.fetchone()
+        if not user:
+            return jsonify({"error": "用戶不存在"}), 404
+        hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+        cur.execute("UPDATE users SET password_hash = %s WHERE username = %s", (hashed_password, username))
+        conn.commit()  
+        return jsonify({"message": "密碼重設成功，請重新登入"}), 200
+    except psycopg2.Error as db_error:
+        return jsonify({"error": f"資料庫錯誤: {str(db_error)}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
     finally:
         if cur:
             cur.close()
