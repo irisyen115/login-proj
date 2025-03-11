@@ -57,7 +57,6 @@ const users = ref([]);
 const avatarFile = ref(null);
 const avatarUrl = ref(null);
 
-
 const logout = () => {
   localStorage.removeItem('token');
   sessionStorage.clear(); 
@@ -84,9 +83,7 @@ const uploadAvatar = async () => {
   formData.append('file', avatarFile.value);
   
   try {
-    const response = await axios.post('/api/upload-avatar', formData, {
-      
-    });
+    const response = await axios.post('/api/upload-avatar', formData);
 
     avatarUrl.value = response.data.avatarUrl; 
     sessionStorage.setItem('avatarUrl', avatarUrl.value);
@@ -107,21 +104,15 @@ const fetchUserData = async () => {
   const storedLoginTime = sessionStorage.getItem('lastLogin');
   const storedLoginCount = sessionStorage.getItem('loginCount');
   role.value = sessionStorage.getItem('role') || 'user';
-
   lastLogin.value = storedLoginTime ? new Date(storedLoginTime).toLocaleString() : "無登入記錄";
   loginCount.value = storedLoginCount ? parseInt(storedLoginCount, 10) : 0;
-
-  console.log("存儲在 sessionStorage 的角色:", sessionStorage.getItem('role'));
 
   try {
     const response = await axios.get('/api/users', {
       withCredentials: true
     });
-
-
-
     users.value = response.data;   
-    
+
     for (let i = 0; i < users.value.length; i++) {
       users.value[i].last_login = users.value[i].last_login ? new Date(users.value[i].last_login).toLocaleString() : "無登入記錄";
       users.value[i].login_count = users.value[i].login_count ? parseInt(users.value[i].login_count, 10) : 0;
