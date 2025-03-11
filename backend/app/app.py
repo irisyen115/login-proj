@@ -184,6 +184,8 @@ def upload_file():
     if not file or not username:
         return jsonify({"error": "請提供帳號與照片"}), 400
 
+    conn = None
+    cur = None
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -209,9 +211,9 @@ def upload_file():
         return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
     
     finally:
-        if 'cur' in locals():
+        if cur:
             cur.close()
-        if 'conn' in locals():
+        if conn:
             conn.close()
             
 if __name__ == "__main__":

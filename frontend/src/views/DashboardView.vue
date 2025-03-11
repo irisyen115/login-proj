@@ -84,10 +84,9 @@ const uploadAvatar = async () => {
   
   try {
     const response = await axios.post('/api/upload-avatar', formData);
-
     avatarUrl.value = response.data.avatarUrl; 
     sessionStorage.setItem('avatarUrl', avatarUrl.value);
-    alert("大頭貼上傳成功！");
+    window.confirm("大頭貼上傳成功！");
   } catch (error) {
     console.error("上傳失敗:", error);
   }
