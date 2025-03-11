@@ -12,6 +12,14 @@
       <p>您是普通用戶，您只能查看自己的資料。</p>
     </div>
 
+    <div class="avatar-container">
+      <img v-if="avatarUrl" :src="avatarUrl" class="avatar-preview" alt="大頭貼">
+      <p v-else>尚未上傳大頭貼</p>
+      <input type="file" @change="handleFileChange" accept="image/*">
+      <button @click="uploadAvatar">上傳大頭貼</button>
+    </div>
+
+
     <table class="dash-table">
       <thead>
         <tr>
@@ -46,37 +54,64 @@ const lastLogin = ref(null);
 const loginCount = ref(null);
 const role = ref(null);
 const users = ref([]);
+const avatarFile = ref(null);
+const avatarUrl = ref(null);
 
 const logout = () => {
   localStorage.removeItem('token');
   sessionStorage.clear(); 
-  console.log("登出後 role:", sessionStorage.getItem('role')); // 確認是否為 null
+  console.log("登出後 role:", sessionStorage.getItem('role'));
 
   router.push('/'); 
 };
 
+const handleFileChange = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    avatarFile.value = file;
+    avatarUrl.value = URL.createObjectURL(file); 
+  }
+};
+
+const uploadAvatar = async () => {
+  if (!avatarFile.value) {
+    alert("請選擇圖片後再上傳！");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', avatarFile.value);
+  
+  try {
+    const response = await axios.post('/api/upload-avatar', formData);
+    avatarUrl.value = response.data.avatarUrl; 
+    sessionStorage.setItem('avatarUrl', avatarUrl.value);
+    window.confirm("大頭貼上傳成功！");
+  } catch (error) {
+    console.error("上傳失敗:", error);
+  }
+};
+
 const fetchUserData = async () => {
   const token = localStorage.getItem("token");
-  console.log("目前 token:", token);
+  if (!token) {
+    router.push('/');
+    return;
+  }
 
   username.value = sessionStorage.getItem('username');
   const storedLoginTime = sessionStorage.getItem('lastLogin');
   const storedLoginCount = sessionStorage.getItem('loginCount');
-
   role.value = sessionStorage.getItem('role') || 'user';
-
   lastLogin.value = storedLoginTime ? new Date(storedLoginTime).toLocaleString() : "無登入記錄";
   loginCount.value = storedLoginCount ? parseInt(storedLoginCount, 10) : 0;
-
-  console.log("存儲在 sessionStorage 的角色:", sessionStorage.getItem('role'));
 
   try {
     const response = await axios.get('/api/users', {
       withCredentials: true
     });
-
     users.value = response.data;   
-    
+
     for (let i = 0; i < users.value.length; i++) {
       users.value[i].last_login = users.value[i].last_login ? new Date(users.value[i].last_login).toLocaleString() : "無登入記錄";
       users.value[i].login_count = users.value[i].login_count ? parseInt(users.value[i].login_count, 10) : 0;
@@ -113,6 +148,8 @@ body, html {
   align-items: center;
   justify-content: center;
   min-height: 100vh; 
+  max-width: 900px; 
+  margin: 0 auto;
   padding: 20px;
   box-sizing: border-box;
   position: relative;
@@ -153,10 +190,32 @@ button {
   border: none;
   border-radius: 5px;
   color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+
 }
 
 button:hover {
   background-color: #e88f00;
+}
+
+.avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.avatar-preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 10px;
+  border: 2px solid #f0a500;
+}
+
+input[type="file"] {
+  margin-bottom: 10px;
 }
 
 </style>

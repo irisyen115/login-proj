@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify, make_response
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -5,11 +6,16 @@ from flask_bcrypt import Bcrypt
 from datetime import datetime
 from flask_cors import CORS
 
-
 app = Flask(__name__)
 CORS(app)
 bcrypt = Bcrypt(app)
 
+UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+    
 DB_CONFIG = {
     "dbname": "mydatabase",
     "user": "user",
@@ -34,7 +40,6 @@ def status():
     response = make_response(jsonify({"status": "ok"}))
     response.set_cookie("user_session", "123456", httponly=True, secure=True, samesite="Strict")
     return response
-
 
 @app.route('/logout')
 def logout():
@@ -168,5 +173,48 @@ def get_users():
         if conn:
             conn.close()
 
+@app.route('/upload-avatar', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "請提供照片"}), 400
+    
+    file = request.files['file']
+    username = request.cookies.get("user_session", "").strip()
+    
+    if not file or not username:
+        return jsonify({"error": "請提供帳號與照片"}), 400
+
+    conn = None
+    cur = None
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+        user = cur.fetchone()
+        
+        if not user:
+            return jsonify({"error": "使用者不存在"}), 404
+        
+        user_id = user['id']
+        filename = f"{user_id}.jpg"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        file.save(filepath)
+        
+        cur.execute("UPDATE users SET profile_image = %s WHERE id = %s", (filepath, user_id))
+        conn.commit()
+        
+        return jsonify({"message": "照片上傳成功", "file_path": filepath})
+    
+    except Exception as e:
+        return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
+    
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+            
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
