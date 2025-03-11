@@ -65,6 +65,22 @@ const logout = () => {
   router.push('/');
 };
 
+const formatDateTime = (dateString) => {
+  if (!dateString) return "無登入記錄";
+
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZoneName: 'short'
+  }).format(date);
+};
+
 const handleFileChange = (event) => {
   const file = event.target.files[0];
   if (file) {
@@ -103,7 +119,7 @@ const fetchUserData = async () => {
   const storedLoginTime = sessionStorage.getItem('lastLogin');
   const storedLoginCount = sessionStorage.getItem('loginCount');
   role.value = sessionStorage.getItem('role') || 'user';
-  lastLogin.value = storedLoginTime ? new Date(storedLoginTime).toLocaleString() : "無登入記錄";
+  lastLogin.value = formatDateTime(storedLoginTime);
   loginCount.value = storedLoginCount ? parseInt(storedLoginCount, 10) : 0;
 
   try {
