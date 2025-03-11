@@ -5,7 +5,6 @@ from psycopg2.extras import RealDictCursor
 from flask_bcrypt import Bcrypt
 from datetime import datetime
 from flask_cors import CORS
-from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 CORS(app)
@@ -41,7 +40,6 @@ def status():
     response = make_response(jsonify({"status": "ok"}))
     response.set_cookie("user_session", "123456", httponly=True, secure=True, samesite="Strict")
     return response
-
 
 @app.route('/logout')
 def logout():
