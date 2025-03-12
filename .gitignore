@@ -2,3 +2,4 @@
 *dist/
 *pg_data*
 *__pycache__*
+*ssl*
