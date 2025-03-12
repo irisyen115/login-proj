@@ -4,7 +4,7 @@
 
     <div v-if="role === 'admin'">
       <h3>管理員功能</h3>
-      <p>您擁有管理員權限，可以查看所有使用者的資料。</p>
+      <p>您擁有管理員權限，可以查看所有使用者的資料。</p>      
     </div>
 
     <div v-else-if="role === 'user'">
@@ -50,7 +50,7 @@ import { ref, onMounted } from 'vue';
 const axios = require('axios').default;
 const router = useRouter();
 const username = ref('');
-const lastLogin = ref(null);
+const lastLogin = ref(null); 
 const loginCount = ref(null);
 const role = ref(null);
 const users = ref([]);
@@ -59,17 +59,17 @@ const avatarUrl = ref(null);
 
 const logout = () => {
   localStorage.removeItem('token');
-  sessionStorage.clear();
+  sessionStorage.clear(); 
   console.log("登出後 role:", sessionStorage.getItem('role'));
 
-  router.push('/');
+  router.push('/'); 
 };
 
 const handleFileChange = (event) => {
   const file = event.target.files[0];
   if (file) {
     avatarFile.value = file;
-    avatarUrl.value = URL.createObjectURL(file);
+    avatarUrl.value = URL.createObjectURL(file); 
   }
 };
 
@@ -81,10 +81,10 @@ const uploadAvatar = async () => {
 
   const formData = new FormData();
   formData.append('file', avatarFile.value);
-
+  
   try {
     const response = await axios.post('/api/upload-avatar', formData);
-    avatarUrl.value = response.data.avatarUrl;
+    avatarUrl.value = response.data.avatarUrl; 
     sessionStorage.setItem('avatarUrl', avatarUrl.value);
     window.confirm("大頭貼上傳成功！");
   } catch (error) {
@@ -110,7 +110,7 @@ const fetchUserData = async () => {
     const response = await axios.get('/api/users', {
       withCredentials: true
     });
-    users.value = response.data;
+    users.value = response.data;   
 
     for (let i = 0; i < users.value.length; i++) {
       users.value[i].last_login = users.value[i].last_login ? new Date(users.value[i].last_login).toLocaleString() : "無登入記錄";
@@ -147,8 +147,8 @@ body, html {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  max-width: 900px;
+  min-height: 100vh; 
+  max-width: 900px; 
   margin: 0 auto;
   padding: 20px;
   box-sizing: border-box;
@@ -157,16 +157,16 @@ body, html {
 }
 
 .dash-table {
-  width: 100%;
-  max-height: 400px;
-  overflow-y: auto;
+  width: 100%; 
+  max-height: 400px; 
+  overflow-y: auto; 
   border-collapse: collapse;
   margin-bottom: 10px;
   font-size: larger;
   text-align: left;
-  background-color: white;
-  border-radius: 5px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: white; 
+  border-radius: 5px; 
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
 }
 
 .dash-table th,
@@ -178,7 +178,7 @@ body, html {
 .dash-table th {
   background-color: #f0f0f0;
   position: sticky;
-  top: 0;
+  top: 0; 
   z-index: 1;
 }
 
@@ -190,7 +190,7 @@ button {
   border: none;
   border-radius: 5px;
   color: white;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
 
 }
 
