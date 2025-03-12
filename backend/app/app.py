@@ -1,5 +1,7 @@
 import os
 from flask import Flask, request, jsonify, make_response
+import random
+import string
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask_bcrypt import Bcrypt
@@ -45,6 +47,10 @@ def logout():
     response = make_response(jsonify({"message": "登出成功"}))
     response.set_cookie("user_session", "", expires=0)
     return response
+
+def generate_reset_token():
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+
 @app.route('/register', methods=['POST'])
 def register():
     data = request.json
@@ -62,11 +68,14 @@ def register():
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         cur.execute("SELECT username FROM users WHERE username = %s", (username,))
-        if cur.fetchone():
+        user = cur.fetchone()
+        if user:
             return jsonify({"error": "帳號已存在"}), 400
 
-        cur.execute("INSERT INTO users (username, password_hash, email, last_login, login_count) VALUES (%s, %s, %s, %s, %s)",
-                    (username, password_hash, email, None, 0))
+        key_certificate = generate_reset_token()
+        app.logger.error(f"密鑰為: {key_certificate}")
+        cur.execute("INSERT INTO users (username, password_hash, email, last_login, login_count, key_certificate) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (username, password_hash, email, None, 0, key_certificate))
         conn.commit()
 
         response = make_response(jsonify({"message": "註冊成功", "user": username, "role": "user"}))
