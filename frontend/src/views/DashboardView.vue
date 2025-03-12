@@ -19,6 +19,7 @@
       <button @click="uploadAvatar">上傳大頭貼</button>
     </div>
 
+
     <table class="dash-table">
       <thead>
         <tr>
@@ -60,34 +61,8 @@ const logout = () => {
   localStorage.removeItem('token');
   sessionStorage.clear();
   console.log("登出後 role:", sessionStorage.getItem('role'));
+
   router.push('/');
-};
-
-const handleFileChange = (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    avatarFile.value = file;
-    avatarUrl.value = URL.createObjectURL(file);
-  }
-};
-
-const uploadAvatar = async () => {
-  if (!avatarFile.value) {
-    alert("請選擇圖片後再上傳！");
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append('file', avatarFile.value);
-
-  try {
-    const response = await axios.post('/api/upload-avatar', formData);
-    avatarUrl.value = response.data.avatarUrl;
-    sessionStorage.setItem('avatarUrl', avatarUrl.value);
-    window.confirm("大頭貼上傳成功！");
-  } catch (error) {
-    console.error("上傳失敗:", error);
-  }
 };
 
 const handleFileChange = (event) => {
