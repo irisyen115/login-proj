@@ -5,6 +5,7 @@
       <form @submit.prevent="register">
         <input v-model="username" placeholder="帳號" required />
         <input v-model="password" type="password" placeholder="密碼" required />
+        <input v-model="email" placeholder="電子郵件" required />
         <button @click.prevent="register" class="btn register-btn">註冊</button>
       </form>
 
@@ -22,6 +23,7 @@ import { useRouter } from "vue-router";
 const router = useRouter();
 const username = ref("");
 const password = ref("");
+const email = ref("");
 const errorMessage = ref("");
 
 const register = async () => {
@@ -36,14 +38,15 @@ const register = async () => {
     const response = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        username: username.value, 
-        password: password.value 
+      body: JSON.stringify({
+        username: username.value,
+        password: password.value,
+        email: email.value
       }),
       credentials: "include",
     });
 
-    const data = await response.json();    
+    const data = await response.json();
 
     if (response.ok) {
       localStorage.setItem("token", data.token);

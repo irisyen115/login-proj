@@ -1,5 +1,7 @@
 import os
 from flask import Flask, request, jsonify, make_response
+import random
+import string
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask_bcrypt import Bcrypt
@@ -15,7 +17,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
-    
 DB_CONFIG = {
     "dbname": "mydatabase",
     "user": "user",
@@ -46,15 +47,19 @@ def logout():
     response = make_response(jsonify({"message": "登出成功"}))
     response.set_cookie("user_session", "", expires=0)
     return response
-        
+
+def generate_reset_token():
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+
 @app.route('/register', methods=['POST'])
 def register():
     data = request.json
     username = data.get("username")
     password = data.get("password")
+    email = data.get("email")
 
-    if not username or not password:
-        return jsonify({"error": "請提供帳號和密碼"}), 400
+    if not username or not password or not email:
+        return jsonify({"error": "請提供帳號、密碼和電子郵件"}), 400
 
     password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
@@ -63,11 +68,14 @@ def register():
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         cur.execute("SELECT username FROM users WHERE username = %s", (username,))
-        if cur.fetchone():
+        user = cur.fetchone()
+        if user:
             return jsonify({"error": "帳號已存在"}), 400
 
-        cur.execute("INSERT INTO users (username, password_hash, last_login, login_count) VALUES (%s, %s, %s, %s)",
-                    (username, password_hash, None, 0))
+        key_certificate = generate_reset_token()
+        app.logger.error(f"密鑰為: {key_certificate}")
+        cur.execute("INSERT INTO users (username, password_hash, email, last_login, login_count, key_certificate) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (username, password_hash, email, None, 0, key_certificate))
         conn.commit()
 
         response = make_response(jsonify({"message": "註冊成功", "user": username, "role": "user"}))
@@ -103,7 +111,6 @@ def login():
 
         if not user:
             return jsonify({"error": "帳號不存在"}), 404
-        
 
         if not user["password_hash"]:
             return jsonify({"error": "密碼欄位錯誤"}), 500
@@ -139,7 +146,6 @@ def login():
             cur.close()
         if 'conn' in locals():
             conn.close()
-            
 @app.route('/users', methods=['GET'])
 def get_users():
     username = request.cookies.get("user_session", "").strip()
@@ -176,10 +182,10 @@ def get_users():
 def upload_file():
     if 'file' not in request.files:
         return jsonify({"error": "請提供照片"}), 400
-    
+
     file = request.files['file']
     username = request.cookies.get("user_session", "").strip()
-    
+
     if not file or not username:
         return jsonify({"error": "請提供帳號與照片"}), 400
 
@@ -188,27 +194,27 @@ def upload_file():
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         cur.execute("SELECT id FROM users WHERE username = %s", (username,))
         user = cur.fetchone()
-        
+
         if not user:
             return jsonify({"error": "使用者不存在"}), 404
-        
+
         user_id = user['id']
         filename = f"{user_id}.jpg"
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        
+
         file.save(filepath)
-        
+
         cur.execute("UPDATE users SET profile_image = %s WHERE id = %s", (filepath, user_id))
         conn.commit()
-        
+
         return jsonify({"message": "照片上傳成功", "file_path": filepath})
-    
+
     except Exception as e:
         return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
-    
+
 @app.route('/reset-password', methods=['POST'])
 def reset_password_with_token():
     data = request.json
@@ -226,7 +232,7 @@ def reset_password_with_token():
             return jsonify({"error": "用戶不存在"}), 404
         hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
         cur.execute("UPDATE users SET password_hash = %s WHERE username = %s", (hashed_password, username))
-        conn.commit()  
+        conn.commit()
         return jsonify({"message": "密碼重設成功，請重新登入"}), 200
     except psycopg2.Error as db_error:
         return jsonify({"error": f"資料庫錯誤: {str(db_error)}"}), 500
@@ -237,6 +243,6 @@ def reset_password_with_token():
             cur.close()
         if conn:
             conn.close()
-            
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
