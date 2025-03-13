@@ -33,25 +33,27 @@
 
 <script setup>
 import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 
 const router = useRouter();
 const username = ref("");
 const newPassword = ref("");
 const errorMessage = ref("");
 const isLoading = ref(false);
+const route = useRoute();
+const keyCertificate = route.query.key;
 
 const resetPassword = async () => {
   errorMessage.value = "";
   isLoading.value = true;
 
   try {
-    const response = await fetch("/api/reset-password", {
+    const response = await fetch(`/api/reset-password/${keyCertificate}` , {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         username: username.value,
-        password: newPassword.value,  // 移除 reset_token
+        password: newPassword.value,
       }),
       mode: "cors",
       credentials: "include",
