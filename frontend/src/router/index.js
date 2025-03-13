@@ -3,6 +3,7 @@ import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
 import DashboardView from '../views/DashboardView.vue';
 import ResetPassword from '../views/ResetPassword.vue';
+import SendAuthentication from '../views/SendAuthentication.vue'
 
 const routes = [
   {
@@ -29,6 +30,11 @@ const routes = [
     path: '/reset-password/:key_certificate',
     name: 'resetPassword',
     component: ResetPassword,
+  },
+  {
+    path: '/sendAuthentication',
+    name: 'sendAuthentication',
+    component: SendAuthentication,
   },
 ];
 

@@ -182,6 +182,25 @@ def expiration(key_certificate):
         else:
             return False
 
+@app.route('/send-authentication', methods=['POST'])
+def send_authentication():
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        data = request.json
+        username = data.get("username")
+
+        cur.execute("UPDATE users SET id_authentication WHERE username = %s", (username,))
+        conn.commit()
+        return jsonify({"message": "驗證信已發送，請重新設置"}), 200
+    except psycopg2.Error as db_error:
+        return jsonify({"error": f"資料庫錯誤: {str(db_error)}"}), 500
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
 @app.route('/reset-password/<key_certificate>', methods=['POST'])
 def reset_password_with_key_certificate(key_certificate):
     try:
