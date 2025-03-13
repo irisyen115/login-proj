@@ -48,8 +48,8 @@ def logout():
     response.set_cookie("user_session", "", expires=0)
     return response
 
-def generate_reset_token(len):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=len))
+def generate_reset_token(length):
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 @app.route('/register', methods=['POST'])
 def register():
