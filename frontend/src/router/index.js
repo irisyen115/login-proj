@@ -1,14 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import LoginView from '../views/LoginView.vue'; 
-import RegisterView from '../views/RegisterView.vue'; 
-import DashboardView from '../views/DashboardView.vue'; 
+import LoginView from '../views/LoginView.vue';
+import RegisterView from '../views/RegisterView.vue';
+import DashboardView from '../views/DashboardView.vue';
 import ResetPassword from '../views/ResetPassword.vue';
 
 const routes = [
   {
     path: '/',
     name: 'home',
-    redirect: '/login',  
+    redirect: '/login',
   },
   {
     path: '/login',
@@ -26,7 +26,7 @@ const routes = [
     component: DashboardView,
   },
   {
-    path: '/resetPassword',
+    path: '/reset-password/:key_certificate',
     name: 'resetPassword',
     component: ResetPassword,
   },
