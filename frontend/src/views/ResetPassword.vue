@@ -41,7 +41,7 @@ const newPassword = ref("");
 const errorMessage = ref("");
 const isLoading = ref(false);
 const route = useRoute();
-const keyCertificate = route.query.key;
+const keyCertificate = route.params.key_certificate;
 
 const resetPassword = async () => {
   errorMessage.value = "";
