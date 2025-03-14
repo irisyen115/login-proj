@@ -8,7 +8,7 @@
         <button type="submit" class="btn login-btn">登入</button>
       </form>
       <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-      <p>忘記密碼？<a @click.prevent="goToResetPassword" style="cursor: pointer; color: blue;">點此重設</a></p>
+      <p>忘記密碼？<a @click.prevent="goToSendAuthentication" style="cursor: pointer; color: blue;">點此重設</a></p>
       <p>尚未註冊？<a @click.prevent="goToRegister" style="cursor: pointer; color: blue;">點此註冊</a></p>
     </div>
   </div>
@@ -66,8 +66,8 @@ const login = async () => {
   }
 };
 
-const goToResetPassword = () => {
-  router.push('/resetPassword')
+const goToSendAuthentication  = () => {
+  router.push('/sendAuthentication')
 }
 
 const goToRegister = () => {
