@@ -189,8 +189,16 @@ def send_authentication():
         cur = conn.cursor(cursor_factory=RealDictCursor)
         data = request.json
         username = data.get("username")
+        new_key_certificate = generate_reset_token(30)
+        cur.execute("UPDATE users SET key_certificate = %s, id_authentication = %s WHERE username = %s", (new_key_certificate, True ,username,))
+        conn.commit()
 
-        cur.execute("UPDATE users SET id_authentication WHERE username = %s", (username,))
+        cur.execute("INSERT INTO certificate (key_certificate, valid_until) VALUES (%s, NOW() + INTERVAL '15 minute') ",
+                    (new_key_certificate, ))
+        conn.commit()
+
+        cur.execute("SELECT * FROM certificate WHERE key_certificate = %s", (new_key_certificate,))
+        app.logger.error(cur.fetchall())
         conn.commit()
         return jsonify({"message": "驗證信已發送，請重新設置"}), 200
     except psycopg2.Error as db_error:
