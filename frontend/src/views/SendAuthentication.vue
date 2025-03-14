@@ -1,19 +1,20 @@
 <template>
-    <div class="Send-Authentication-container">
-      <div class="Send-Authentication-card">
-        <form @submit.prevent="send">
-          <input v-model="username" placeholder="帳號" required />
-          <button type="submit" class="btn Send-Authentication-btn">輸入</button>
-        </form>
-        <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-        <p>不須重設？<a @click.prevent="goToLogin" style="cursor: pointer; color: blue;">點此登入</a></p>
-      </div>
+    <div class="send-container">
+      <h2>請輸入用戶名</h2>
+      <form @submit.prevent="send">
+        <input v-model="username" placeholder="帳號" required />
+        <button type="submit" class="btn Send-Authentication-btn">輸入</button>
+      </form>
+      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+      <p>不須重設？<a @click.prevent="goToLogin" style="cursor: pointer; color: blue;">點此登入</a></p>
     </div>
   </template>
 
 <script setup>
 import { ref } from "vue";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
 const username = ref("")
 const errorMessage = ref("");
 
@@ -28,10 +29,12 @@ const send = async () => {
         });
 
         if (response.ok) {
-            window.confirm("驗證信已發送至綁定 email，請簽收");
+            if (confirm("驗證信已發送至綁定 email，請簽收") == true) {
+              router.push('/login')
+            }
         } else {
             const data = await response.json();
-            errorMessage.value = data.error || "密碼重設失敗";
+            errorMessage.value = "伺服器錯誤，請稍後再試";
         }
     } catch (error) {
         errorMessage.value = "請求失敗，請稍後再試";
@@ -43,16 +46,16 @@ const goToLogin = () => {
 </script>
 
 <style scoped>
-.Send-Authentication-container {
+.send-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   height: 100vh;
   justify-content: center;
-  background: linear-gradient(135deg, #66eacd, #4b9ca2);
+  background: linear-gradient(135deg, #eaac66, #f33838);
 }
 
-.Send-Authentication-password-card {
+.send-card {
   background: white;
   padding: 2rem;
   text-align: center;
