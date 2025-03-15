@@ -3,3 +3,4 @@
 *pg_data*
 *__pycache__*
 *ssl*
+*.env*
