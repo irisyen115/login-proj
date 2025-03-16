@@ -9,5 +9,5 @@ import { useRoute } from 'vue-router';
 import Navbar from './components/NavBar.vue';
 
 const route = useRoute();
-const showNavbar = computed(() => route.path !== '/login' && route.path !== '/register');
+const showNavbar = computed(() => route.path == '/dashboard');
 </script>
