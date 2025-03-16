@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, jsonify, make_response, send_from_directory
 from flask_cors import CORS
-from models import db, init_db, User
+from models import db, init_db, User, Certificate
 import random
 import string
 from datetime import datetime
@@ -156,6 +156,56 @@ def get_user_image():
             return jsonify({"error": "圖片檔案不存在"}), 404
 
     return jsonify({"error": "無圖片可顯示"}), 404
+
+@app.route('/send-authentication', methods=['POST'])
+def send_authentication():
+    data = request.json
+    username = data.get("username")
+    user = User.query.filter_by(username=username).first()
+    new_key_certificate = generate_reset_token(30)
+    user.key_certificate = new_key_certificate
+    db.session.commit()
+
+    new_cert = Certificate.add_certificate(new_key_certificate)
+
+    return jsonify({"message": "驗證信已發送，請重新設置"}), 200
+
+def expiration(key_certificate):
+    currentDateAndTime = datetime.now()
+
+    cert = Certificate.query.filter_by(key_certificate=key_certificate).first()
+    if cert:
+        valid_until = cert.valid_until
+
+        if currentDateAndTime > valid_until:
+            return True
+        else:
+            return False
+
+@app.route('/reset-password/<key_certificate>', methods=['POST'])
+def reset_password_with_key_certificate(key_certificate):
+    try:
+        user = User.query.filter_by(key_certificate=key_certificate).first()
+
+        if not user:
+            return jsonify({"error": "無效的驗證密鑰"}), 400
+        elif expiration(key_certificate):
+            return jsonify({"error": "驗證密鑰已過期"}), 400
+
+        new_key_certificate = generate_reset_token(30)
+
+        data = request.json
+        new_password = data.get("password")
+
+        if not new_password:
+            return jsonify({"error": "請提供新密碼"}), 400
+
+        user.password_hash = user.set_password(new_password)
+        user.key_certificate = new_key_certificate
+        db.session.commit()
+        return jsonify({"message": "密碼重設成功，請重新登入"}), 200
+    except Exception as e:
+        return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
