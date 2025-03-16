@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from datetime import datetime
+from datetime import datetime, timedelta
 
 db = SQLAlchemy()
 bcrypt = Bcrypt()
@@ -32,6 +32,23 @@ class User(db.Model):
     def update_last_login(self):
         self.last_login = datetime.utcnow()
         self.login_count += 1
+
+class Certificate(db.Model):
+    __tablename__ = "certificate"
+
+    id = db.Column(db.Integer, primary_key=True)
+    valid_until = db.Column(db.DateTime, nullable=False)
+    key_certificate = db.Column(db.String(50), nullable=False)
+
+    @classmethod
+    def add_certificate(cls, key_certificate):
+        new_certificate = cls(
+            key_certificate=key_certificate,
+            valid_until=datetime.utcnow() + timedelta(minutes=15)
+        )
+        db.session.add(new_certificate)
+        db.session.commit()
+        return new_certificate
 
 def init_db(app):
     db.init_app(app)
