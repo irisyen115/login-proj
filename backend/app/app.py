@@ -182,53 +182,6 @@ def expiration(key_certificate):
         else:
             return False
 
-@app.route('/send-authentication', methods=['POST'])
-def send_authentication():
-    try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        data = request.json
-        username = data.get("username")
-        new_key_certificate = generate_reset_token(30)
-        cur.execute("UPDATE users SET key_certificate = %s WHERE username = %s", (new_key_certificate ,username,))
-        conn.commit()
-
-        cur.execute("INSERT INTO certificate (key_certificate, valid_until) VALUES (%s, NOW() + INTERVAL '15 minute')",
-                    (new_key_certificate, ))
-        conn.commit()
-
-        return jsonify({"message": "驗證信已發送，請重新設置"}), 200
-    except psycopg2.Error as db_error:
-        return jsonify({"error": f"資料庫錯誤: {str(db_error)}"}), 500
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
-
-from datetime import datetime
-
-def expiration(key_certificate):
-    conn = psycopg2.connect(**DB_CONFIG)
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    currentDateAndTime = datetime.now()
-
-    cur.execute("SELECT valid_until FROM certificate WHERE key_certificate = %s", (key_certificate,))
-    row = cur.fetchone()
-    if cur:
-        cur.close()
-    if conn:
-        conn.close()
-
-    if row:
-        valid_until = row['valid_until']
-
-        if currentDateAndTime > valid_until:
-            return True
-        else:
-            return False
-
-
 @app.route('/reset-password/<key_certificate>', methods=['POST'])
 def reset_password_with_key_certificate(key_certificate):
     try:
