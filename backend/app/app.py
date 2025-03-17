@@ -182,6 +182,28 @@ def expiration(key_certificate):
         else:
             return False
 
+@app.route("/verify-email", methods=["POST"])
+def verify_email():
+    try:
+        data = request.json
+        username = data.get("username")
+        if not username:
+            return jsonify({"message": "請輸入用戶名"}), 404
+
+        user = User.query.filter_by(username=username).first()
+
+        if not user:
+            return jsonify({"message": "用戶不存在"}), 404
+
+        if not user.email:
+            return jsonify({"message": "用戶未綁定 Email，請先綁定"}), 400
+
+        return jsonify({"email": user.email, "message": "Email 已綁定"}), 200
+
+    except Exception as e:
+        return jsonify({"message": "伺服器錯誤，請稍後再試"}), 500
+
+
 @app.route('/reset-password/<key_certificate>', methods=['POST'])
 def reset_password_with_key_certificate(key_certificate):
     try:
