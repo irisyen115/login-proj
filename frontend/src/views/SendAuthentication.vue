@@ -3,8 +3,9 @@
       <h2>請輸入用戶名</h2>
       <form @submit.prevent="send">
         <input v-model="username" placeholder="帳號" required />
-        <button type="submit" class="btn Send-Authentication-btn">輸入</button>
+        <button type="submit" class="btn send-btn">輸入</button>
       </form>
+      <button @click="verifyEmail" class="btn Verify-Email-btn">驗證綁定 Email</button>
       <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
       <p>不須重設？<a @click.prevent="goToLogin" style="cursor: pointer; color: blue;">點此登入</a></p>
     </div>
@@ -40,6 +41,28 @@ const send = async () => {
         errorMessage.value = "請求失敗，請稍後再試";
     }
 };
+
+const verifyEmail = async () => {
+    try {
+        const response = await fetch("/api/verify-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username.value }),
+            mode: "cors",
+            credentials: "include"
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            confirm(`綁定的 Email：${data.email}`);
+        } else {
+            alert(data.message);
+        }
+    } catch (error) {
+        alert("請求失敗，請稍後再試");
+    }
+};
+
 const goToLogin = () => {
   router.push('/login');
 };
