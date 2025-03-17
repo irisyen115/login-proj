@@ -73,7 +73,7 @@ const send = async () => {
             }
         } else {
             const data = await response.json();
-            errorMessage.value = "伺服器錯誤，請稍後再試";
+            alert(data.message);
         }
     } catch (error) {
         errorMessage.value = "請求失敗，請稍後再試";
@@ -81,8 +81,7 @@ const send = async () => {
 };
 
 const verifyEmail = async () => {
-  if (isDisabled.value) return; // 防止重複點擊
-
+  if (isDisabled.value) return;
   let cooldown = 5;
   isDisabled.value = true;
   buttonText.value = `請稍候... (${cooldown})`;
@@ -172,18 +171,33 @@ input:focus {
   transition: all 0.3s ease;
 }
 
-.Send-Authentication-btn {
+.send-btn {
   background: #007bff;
   color: white;
 }
 
-.Send-Authentication-btn:hover {
+.send-btn:hover {
   background: #0056b3;
+}
+
+.Verify-Email-btn {
+  background: #28a745;
+  color: white;
+}
+
+.Verify-Email-btn:hover {
+  background: #218838;
 }
 
 .error {
   margin-top: 10px;
-  color: red;
+  color: #980042;
+  font-weight: bold;
+}
+
+.success {
+  margin-top: 10px;
+  color: green;
   font-weight: bold;
 }
 </style>
