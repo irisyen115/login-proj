@@ -38,12 +38,17 @@ class Certificate(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     valid_until = db.Column(db.DateTime, nullable=False)
-    key_certificate = db.Column(db.String(50), nullable=False)
+    key_certificate = db.Column(db.String(50), nullable=True)
+    email_verify = db.Column(db.String(50), nullable=True)
 
     @classmethod
-    def add_certificate(cls, key_certificate):
+    def add_certificate(cls, key_certificate=None, email_verify=None):
+        if not key_certificate and not email_verify:
+            raise ValueError("必須至少提供 key_certificate 或 email_verify")
+
         new_certificate = cls(
             key_certificate=key_certificate,
+            email_verify=email_verify,
             valid_until=datetime.utcnow() + timedelta(minutes=15)
         )
         db.session.add(new_certificate)

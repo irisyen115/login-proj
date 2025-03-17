@@ -169,7 +169,7 @@ def send_authentication():
     if not user:
         return jsonify({"message": "用戶不存在"}), 404
 
-    if user.key_certificate and not expiration(user.key_certificate):
+    if user.key_certificate and not expiration(key_certificate=user.key_certificate):
         return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收"}), 404
 
     new_key_certificate = generate_reset_token(30)
@@ -180,10 +180,16 @@ def send_authentication():
 
     return jsonify({"message": "驗證信已發送，請重新設置"}), 200
 
-def expiration(key_certificate):
+def expiration(key_certificate=None, email_verify=None):
     currentDateAndTime = datetime.now()
 
-    cert = Certificate.query.filter_by(key_certificate=key_certificate).first()
+    if key_certificate:
+        cert = Certificate.query.filter_by(key_certificate=key_certificate).first()
+    elif email_verify:
+        cert = Certificate.query.filter_by(email_verify=email_verify).first()
+    else:
+        return None
+
     if cert:
         valid_until = cert.valid_until
 
@@ -197,13 +203,10 @@ def verify_email():
     try:
         data = request.json
         username = data.get("username")
+        user = User.query.filter_by(username=username).first()
+
         if not username:
             return jsonify({"message": "請輸入用戶名"}), 404
-
-        user = User.query.filter_by(username=username).first()
-        new_email_verify = generate_reset_token(6)
-        user.email_verify = new_email_verify
-        db.session.commit()
 
         if not user:
             return jsonify({"message": "用戶不存在"}), 404
@@ -211,15 +214,19 @@ def verify_email():
         if not user.email:
             return jsonify({"message": "用戶未綁定 Email，請先綁定"}), 400
 
-        if user.email_verify and not expiration(user.email_verify):
+
+        if user.email_verify and not expiration(email_verify=user.email_verify):
+            app.logger.error(user.email_verify)
             return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收"}), 404
+
+        new_email_verify = generate_reset_token(6)
+        user.email_verify = new_email_verify
+        db.session.commit()
 
         Certificate.add_certificate(email_verify=new_email_verify)
         return jsonify({"email": user.email, "message": "Email 已綁定"}), 200
-
     except Exception as e:
         return jsonify({"message": "伺服器錯誤，請稍後再試"}), 500
-
 
 @app.route('/reset-password/<key_certificate>', methods=['POST'])
 def reset_password_with_key_certificate(key_certificate):
