@@ -162,11 +162,21 @@ def send_authentication():
     data = request.json
     username = data.get("username")
     user = User.query.filter_by(username=username).first()
+
+    if not username:
+        return jsonify({"message": "請輸入用戶名"}), 404
+
+    if not user:
+        return jsonify({"message": "用戶不存在"}), 404
+
+    if user.key_certificate and not expiration(user.key_certificate):
+        return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收"}), 404
+
     new_key_certificate = generate_reset_token(30)
     user.key_certificate = new_key_certificate
     db.session.commit()
 
-    new_cert = Certificate.add_certificate(new_key_certificate)
+    Certificate.add_certificate(key_certificate=new_key_certificate)
 
     return jsonify({"message": "驗證信已發送，請重新設置"}), 200
 
@@ -191,6 +201,9 @@ def verify_email():
             return jsonify({"message": "請輸入用戶名"}), 404
 
         user = User.query.filter_by(username=username).first()
+        new_email_verify = generate_reset_token(6)
+        user.email_verify = new_email_verify
+        db.session.commit()
 
         if not user:
             return jsonify({"message": "用戶不存在"}), 404
@@ -198,6 +211,10 @@ def verify_email():
         if not user.email:
             return jsonify({"message": "用戶未綁定 Email，請先綁定"}), 400
 
+        if user.email_verify and not expiration(user.email_verify):
+            return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收"}), 404
+
+        Certificate.add_certificate(email_verify=new_email_verify)
         return jsonify({"email": user.email, "message": "Email 已綁定"}), 200
 
     except Exception as e:
