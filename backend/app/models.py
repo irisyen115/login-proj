@@ -33,27 +33,19 @@ class User(db.Model):
         self.last_login = datetime.utcnow()
         self.login_count += 1
 
-class Certificate(db.Model):
-    __tablename__ = "certificate"
+class Password(db.Model):
+    __tablename__ = "password_verification"
 
     id = db.Column(db.Integer, primary_key=True)
     valid_until = db.Column(db.DateTime, nullable=False)
-    key_certificate = db.Column(db.String(50), nullable=True)
-    email_verify = db.Column(db.String(50), nullable=True)
+    password_verify_code = db.Column(db.String(50), nullable=True)
 
-    @classmethod
-    def add_certificate(cls, key_certificate=None, email_verify=None):
-        if not key_certificate and not email_verify:
-            raise ValueError("必須至少提供 key_certificate 或 email_verify")
+class Email(db.Model):
+    __tablename__ = "email_verification"
 
-        new_certificate = cls(
-            key_certificate=key_certificate,
-            email_verify=email_verify,
-            valid_until=datetime.utcnow() + timedelta(minutes=15)
-        )
-        db.session.add(new_certificate)
-        db.session.commit()
-        return new_certificate
+    id = db.Column(db.Integer, primary_key=True)
+    valid_until = db.Column(db.DateTime, nullable=False)
+    email_verify_code = db.Column(db.String(50), nullable=True)
 
 def init_db(app):
     db.init_app(app)
