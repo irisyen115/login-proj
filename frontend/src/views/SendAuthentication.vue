@@ -1,118 +1,79 @@
 <template>
-    <div class="send-container">
-      <h2>請輸入用戶名</h2>
-      <form @submit.prevent="send">
-        <input v-model="username" placeholder="帳號" required />
-        <button type="submit" class="btn send-btn">輸入</button>
-      </form>
-      <button
-        @click="verifyEmail"
-        ref="verifyButton"
-        class="btn Verify-Email-btn"
-        :disabled="isDisabled">
-        {{ buttonText }}
-      </button>
-      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-      <p>不須重設？<a @click.prevent="goToLogin" style="cursor: pointer; color: blue;">點此登入</a></p>
-    </div>
-  </template>
+  <div class="send-container">
+    <h2>請輸入用戶名</h2>
+    <form @submit.prevent="send">
+      <input v-model="username" placeholder="帳號" required />
+      <button type="submit" class="btn send-btn" >發送重設頁面</button>
+    </form>
+    <button @click="verifyEmail" ref="verifyButton" class="btn Verify-Email-btn">驗證綁定 Email</button>
+    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+    <p>不須重設？<a @click.prevent="goToLogin" style="cursor: pointer; color: blue;">點此登入</a></p>
+  </div>
+</template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
-const username = ref("")
+const username = ref("");
 const errorMessage = ref("");
 const verifyButton = ref(null);
-const isDisabled = ref(false);
-const buttonText = ref("驗證綁定 Email");
-
-onMounted(() => {
-  if (verifyButton.value) {
-    verifyButton.value.addEventListener("click", async () => {
-      if (isDisabled.value) return;
-
-      let cooldown = 5;
-      isDisabled.value = true;
-      buttonText.value = `請稍候... (${cooldown})`;
-
-      const interval = setInterval(() => {
-        cooldown--;
-        buttonText.value = `請稍候... (${cooldown})`;
-
-        if (cooldown <= 0) {
-          clearInterval(interval);
-          isDisabled.value = false;
-          buttonText.value = "驗證綁定 Email";
-        }
-      }, 1000);
-
-      try {
-        await verifyEmail();
-      } catch (error) {
-        console.error(error);
-      }
-    });
-  }
-});
-
-const send = async () => {
-    try {
-        const response = await fetch("/api/send-authentication", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: username.value }),
-            mode: "cors",
-            credentials: "include"
-        });
-
-        if (response.ok) {
-            if (confirm("驗證信已發送至綁定 email，請簽收") == true) {
-              router.push('/login')
-            }
-        } else {
-            const data = await response.json();
-            alert(data.message);
-        }
-    } catch (error) {
-        errorMessage.value = "請求失敗，請稍後再試";
-    }
-};
+let emailVerify;
 
 const verifyEmail = async () => {
-  if (isDisabled.value) return;
-  let cooldown = 5;
-  isDisabled.value = true;
-  buttonText.value = `請稍候... (${cooldown})`;
 
-  const interval = setInterval(() => {
-    cooldown--;
-    buttonText.value = `請稍候... (${cooldown})`;
-
-    if (cooldown <= 0) {
-      clearInterval(interval);
-      isDisabled.value = false;
-      buttonText.value = "驗證綁定 Email";
-    }
-  }, 1000);
   try {
     const response = await fetch("/api/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username.value }),
-        mode: "cors",
-        credentials: "include"
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: username.value }),
+      mode: "cors",
+      credentials: "include"
     });
     const data = await response.json();
 
     if (response.ok) {
-        confirm(`綁定的 Email：${data.email}`);
+      emailVerify = confirm("Email 確認成功，允許發送重設頁面");
     } else {
-        alert(data.message);
+      alert(data.message);
+    }
+
+  } catch (error) {
+    alert("請求失敗，請稍後再試");
+  }
+};
+
+
+const send = async () => {
+  console.log("發送按鈕已點擊");
+  console.log(emailVerify)
+
+  if (!emailVerify) {
+    errorMessage.value = "請先驗證綁定的 Email 再發送重設頁面"
+    alert("請先驗證綁定的 Email 再發送重設頁面");
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/send-authentication", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: username.value }),
+      mode: "cors",
+      credentials: "include"
+    });
+
+    if (response.ok) {
+      if (confirm("驗證信已發送至綁定 email，請簽收，請勿重複點取") == true) {
+        router.push('/login');
+      }
+    } else {
+      const data = await response.json();
+      alert(data.message);
     }
   } catch (error) {
-      alert("請求失敗，請稍後再試");
+    errorMessage.value = "請求失敗，請稍後再試";
   }
 };
 
@@ -181,6 +142,7 @@ input:focus {
 }
 
 .Verify-Email-btn {
+  width: 310px;
   background: #28a745;
   color: white;
 }
@@ -193,6 +155,7 @@ input:focus {
   margin-top: 10px;
   color: #980042;
   font-weight: bold;
+  font-size: medium;
 }
 
 .success {
