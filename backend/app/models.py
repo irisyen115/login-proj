@@ -19,9 +19,8 @@ class User(db.Model):
     profile_image = db.Column(db.String(255), nullable=True)
     picture_name = db.Column(db.String(255), nullable=True)
     email = db.Column(db.String(30), nullable=True)
-    key_certificate = db.Column(db.String(30), unique=True, nullable=True)
-    id_authentication = db.Column(db.Boolean, default=False)
-    email_verify = db.Column(db.String(255), nullable=True)
+    password_verify_code = db.Column(db.String(255), nullable=True)
+    email_verify_code = db.Column(db.String(255), nullable=True)
 
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
@@ -37,6 +36,7 @@ class Password(db.Model):
     __tablename__ = "password_verification"
 
     id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     valid_until = db.Column(db.DateTime, nullable=False)
     password_verify_code = db.Column(db.String(50), nullable=True)
 
@@ -44,6 +44,7 @@ class Email(db.Model):
     __tablename__ = "email_verification"
 
     id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     valid_until = db.Column(db.DateTime, nullable=False)
     email_verify_code = db.Column(db.String(50), nullable=True)
 
