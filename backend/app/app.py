@@ -169,8 +169,11 @@ def send_authentication():
     if not user:
         return jsonify({"message": "用戶不存在"}), 404
 
+    if not user.email:
+        return jsonify({"message": "用戶未綁定 Email，請先綁定"}), 400
+
     if user.key_certificate and not expiration(key_certificate=user.key_certificate):
-        return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收"}), 404
+        return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收，勿重複點取"}), 404
 
     new_key_certificate = generate_reset_token(30)
     user.key_certificate = new_key_certificate
@@ -214,10 +217,8 @@ def verify_email():
         if not user.email:
             return jsonify({"message": "用戶未綁定 Email，請先綁定"}), 400
 
-
         if user.email_verify and not expiration(email_verify=user.email_verify):
-            app.logger.error(user.email_verify)
-            return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收"}), 404
+            return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收，請勿重複點取"}), 404
 
         new_email_verify = generate_reset_token(6)
         user.email_verify = new_email_verify
