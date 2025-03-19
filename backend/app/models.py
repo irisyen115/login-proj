@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from datetime import datetime, timedelta
+from datetime import datetime
 
 db = SQLAlchemy()
 bcrypt = Bcrypt()
@@ -19,8 +19,9 @@ class User(db.Model):
     profile_image = db.Column(db.String(255), nullable=True)
     picture_name = db.Column(db.String(255), nullable=True)
     email = db.Column(db.String(30), nullable=True)
-    password_verify_code = db.Column(db.String(255), nullable=True)
-    email_verify_code = db.Column(db.String(255), nullable=True)
+
+    password_verification = db.relationship('Password_Verify', back_populates='user', cascade="all, delete-orphan")
+    email_verifications = db.relationship('Email_Verify', back_populates='user', cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
@@ -32,21 +33,27 @@ class User(db.Model):
         self.last_login = datetime.utcnow()
         self.login_count += 1
 
-class Password(db.Model):
+class Password_Verify(db.Model):
     __tablename__ = "password_verification"
 
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     valid_until = db.Column(db.DateTime, nullable=False)
     password_verify_code = db.Column(db.String(50), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)  
 
-class Email(db.Model):
+    user = db.relationship('User', back_populates='password_verification')
+
+class Email_Verify(db.Model):
     __tablename__ = "email_verification"
 
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     valid_until = db.Column(db.DateTime, nullable=False)
     email_verify_code = db.Column(db.String(50), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)  
+
+    user = db.relationship('User', back_populates='email_verifications')
 
 def init_db(app):
     db.init_app(app)
