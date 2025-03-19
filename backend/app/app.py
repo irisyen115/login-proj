@@ -224,7 +224,7 @@ def verify_email():
             return jsonify({"message": "用戶不存在"}), 404
 
         if not user.email:
-            return jsonify({"message": "用戶未綁定 Email，請先綁定"}), 400
+            return jsonify({"message": "用戶未綁定 Email，若需綁定，請洽系統服務"}), 400
 
         if user.email_verify_code:
             if expiration(email_verify_code=user.email_verify_code) == False:

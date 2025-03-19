@@ -1,12 +1,14 @@
 <template>
   <div class="send-container">
     <h2>請輸入用戶名</h2>
-    <form @submit.prevent="send">
-      <input v-model="username" placeholder="帳號" required />
-      <button type="submit" class="btn send-btn" >發送重設頁面</button>
-    </form>
-    <button @click="verifyEmail" ref="verifyButton" class="btn Verify-Email-btn">驗證綁定 Email</button>
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+    <div class="send-card">
+      <form @submit.prevent="send">
+        <input v-model="username" placeholder="帳號" required />
+        <button type="submit" class="btn send-btn" >發送重設頁面</button>
+      </form>
+      <button @click="verifyEmail" class="btn Verify-Email-btn">驗證綁定 Email</button>
+      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+    </div>
     <p>不須重設？<a @click.prevent="goToLogin" style="cursor: pointer; color: blue;">點此登入</a></p>
   </div>
 </template>
@@ -18,11 +20,9 @@ import { useRouter } from "vue-router";
 const router = useRouter();
 const username = ref("");
 const errorMessage = ref("");
-const verifyButton = ref(null);
 let emailVerify;
 
 const verifyEmail = async () => {
-
   try {
     const response = await fetch("/api/verify-email", {
       method: "POST",
@@ -43,7 +43,6 @@ const verifyEmail = async () => {
     alert("請求失敗，請稍後再試");
   }
 };
-
 
 const send = async () => {
   console.log("發送按鈕已點擊");
@@ -93,9 +92,11 @@ const goToLogin = () => {
 }
 
 .send-card {
-  background: white;
+  background-color: wheat;
+  display: flex;
   padding: 2rem;
   text-align: center;
+  flex-direction: column;
   border-radius: 12px;
   box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1);
   width: 320px;
@@ -142,7 +143,6 @@ input:focus {
 }
 
 .Verify-Email-btn {
-  width: 310px;
   background: #28a745;
   color: white;
 }
@@ -153,14 +153,8 @@ input:focus {
 
 .error {
   margin-top: 10px;
-  color: #980042;
+  color: #ff006f;
   font-weight: bold;
   font-size: medium;
-}
-
-.success {
-  margin-top: 10px;
-  color: green;
-  font-weight: bold;
 }
 </style>
