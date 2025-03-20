@@ -20,8 +20,8 @@ class User(db.Model):
     picture_name = db.Column(db.String(255), nullable=True)
     email = db.Column(db.String(30), nullable=True)
 
-    password_verification = db.relationship('Password_Verify', back_populates='user', cascade="all, delete-orphan")
-    email_verifications = db.relationship('Email_Verify', back_populates='user', cascade="all, delete-orphan")
+    password_verification = db.relationship('PasswordVerify', back_populates='user', cascade="all, delete-orphan")
+    email_verifications = db.relationship('EmailVerify', back_populates='user', cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
@@ -33,7 +33,7 @@ class User(db.Model):
         self.last_login = datetime.utcnow()
         self.login_count += 1
 
-class Password_Verify(db.Model):
+class PasswordVerify(db.Model):
     __tablename__ = "password_verification"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -44,7 +44,7 @@ class Password_Verify(db.Model):
 
     user = db.relationship('User', back_populates='password_verification')
 
-class Email_Verify(db.Model):
+class EmailVerify(db.Model):
     __tablename__ = "email_verification"
 
     id = db.Column(db.Integer, primary_key=True)
