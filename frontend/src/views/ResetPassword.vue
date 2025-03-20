@@ -62,11 +62,10 @@ const resetPassword = async () => {
     const data = await response.json();
 
     if (response.ok) {
+      window.confirm(data.message);
       router.push("/login");
-      windows.confirm("密碼重設成功，請重新登入");
     } else {
-      router.push("/login");
-      alert(errorMessage.value)
+      alert(data.message)
     }
   } catch (error) {
     errorMessage.value = "伺服器錯誤，請稍後再試";
