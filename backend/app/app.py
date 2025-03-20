@@ -177,18 +177,12 @@ def send_authentication():
         
         password_verify = PasswordVerify.query.filter_by(user_id=user.id).order_by(desc(PasswordVerify.valid_until)).first()
 
-        if password_verify:
-            current_time = datetime.utcnow()
-            if current_time <= password_verify.valid_until:
-                return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收，勿重複點取"}), 404
-            else:
-                password_verify.password_verify_code = generate_reset_token(30)
-                password_verify.valid_until = current_time + timedelta(minutes=15)
+        current_time = datetime.utcnow()
+        if password_verify and current_time <= password_verify.valid_until:
+            return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收，勿重複點取"}), 404
         else:
-            new_password_verify_code = generate_reset_token(30)
-
             new_password_verify = PasswordVerify(
-                password_verify_code=new_password_verify_code,
+                password_verify_code=generate_reset_token(30),
                 valid_until = datetime.utcnow() + timedelta(minutes=15),
                 user_id = user.id
             )
@@ -197,7 +191,6 @@ def send_authentication():
         db.session.commit()
         return jsonify({"message": "驗證信已發送，請重新設置"}), 200
     except Exception as e:
-        app.logger.error({"error": f"發生錯誤: {str(e)}"})
         return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
 
 @app.route("/verify-email", methods=["POST"])
@@ -205,10 +198,11 @@ def verify_email():
     try:
         data = request.json
         username = data.get("username")
-        user = User.query.filter_by(username=username).first()
-
+        
         if not username:
             return jsonify({"message": "請輸入用戶名"}), 404
+
+        user = User.query.filter_by(username=username).first()
 
         if not user:
             return jsonify({"message": "用戶不存在"}), 404
@@ -218,13 +212,9 @@ def verify_email():
         
         email_verify = EmailVerify.query.filter_by(user_id=user.id).order_by(desc(EmailVerify.valid_until)).first()
 
-        if email_verify:
-            current_time = datetime.utcnow()
-            if current_time <= email_verify.valid_until:
-                return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收，請勿重複點取"}), 400
-            else:
-                email_verify.email_verify_code = generate_reset_token(6)
-                email_verify.valid_until = current_time + timedelta(minutes=15)
+        current_time = datetime.utcnow()
+        if email_verify and current_time <= email_verify.valid_until:
+            return jsonify({"message": "驗證碼已發送，請前往電子信箱驗收，請勿重複點取"}), 400
         else:
             new_email_verify = EmailVerify(
                 email_verify_code=generate_reset_token(6),
@@ -248,7 +238,8 @@ def reset_password_with_password_verify_code(password_verify_code):
 
         if not user:
             return jsonify({"error": "無效的驗證密鑰"}), 400
-        elif current_time <= password_verify.valid_until:
+        
+        if current_time <= password_verify.valid_until:
             return jsonify({"error": "驗證密鑰已過期"}), 400
 
         data = request.json
