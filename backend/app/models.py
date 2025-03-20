@@ -23,6 +23,11 @@ class User(db.Model):
     password_verification = db.relationship('PasswordVerify', back_populates='user', cascade="all, delete-orphan")
     email_verifications = db.relationship('EmailVerify', back_populates='user', cascade="all, delete-orphan")
 
+    def __init__(self, username, email, password):
+        self.username = username
+        self.email = email
+        self.set_password(password)
+
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
