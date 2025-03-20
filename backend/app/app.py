@@ -41,10 +41,8 @@ def register():
     new_user = User(
         username=username,
         email=email,
-        password_verify_code= generate_reset_token(30)
+        password=password
     )
-    new_user.set_password(password)
-
     db.session.add(new_user)
     db.session.commit()
 
