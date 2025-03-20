@@ -30,7 +30,6 @@ def register():
     username = data.get("username")
     password = data.get("password")
     email = data.get("email")
-
     if not username or not password or not email:
         return jsonify({"error": "請提供帳號、密碼和電子郵件"}), 400
 
@@ -213,8 +212,8 @@ def verify_email():
 @app.route('/reset-password/<password_verify_code>', methods=['POST'])
 def reset_password_with_password_verify_code(password_verify_code):
     try:
-        user = User.query.filter_by(password_verify_code=password_verify_code).first()
-        password_verify = PasswordVerify.query.filter_by(password_verify_code=password_verify_code).first().valid_until
+        password_verify = PasswordVerify.query.filter_by(password_verify_code=password_verify_code).first()
+        user = password_verify.user
         current_time = datetime.now()
         if current_time > password_verify.valid_until:
             return jsonify({"message": "驗證密鑰已過期"}), 400
@@ -222,10 +221,9 @@ def reset_password_with_password_verify_code(password_verify_code):
         data = request.json
         new_password = data.get("password")
         if not new_password:
-            return jsonify({"error": "請提供新密碼"}), 400
+            return jsonify({"message": "請提供新密碼"}), 400
 
-        user.password_hash = user.set_password(new_password)
-        user.password_verify_code = new_password_verify_code
+        user.set_password(new_password)
         db.session.commit()
         return jsonify({"message": "密碼重設成功，請重新登入"}), 200
     except Exception as e:
