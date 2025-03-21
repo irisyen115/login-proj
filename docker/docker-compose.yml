@@ -40,7 +40,17 @@ services:
       - pgsql
     ports:
       - "5002:5000"
-
+  mail-service:
+    build:
+      context: ../backend/
+      dockerfile: mail-server/Dockerfile
+    container_name: python-mail-server
+    volumes:
+      - ../backend/mail-server:/app
+    working_dir: /app
+    command: ["python", "mail_server.py"]
+    ports:
+      - "5003:5000"
   pgsql:
     image: postgres
     container_name: pgsql_container
