@@ -216,10 +216,8 @@ def reset_password_with_password_verify_code(password_verify_code):
         user = User.query.filter_by(password_verify_code=password_verify_code).first()
         password_verify = PasswordVerify.query.filter_by(password_verify_code=password_verify_code).first().valid_until
         current_time = datetime.now()
-        if not user:
-            return jsonify({"error": "無效的驗證密鑰"}), 400
-        if current_time <= password_verify.valid_until:
-            return jsonify({"error": "驗證密鑰已過期"}), 400
+        if current_time > password_verify.valid_until:
+            return jsonify({"message": "驗證密鑰已過期"}), 400
 
         data = request.json
         new_password = data.get("password")
