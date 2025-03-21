@@ -50,8 +50,7 @@ services:
       - ../backend/mail-server:/app
     working_dir: /app
     command: ["python", "mail_server.py"]
-    ports:
-      - "5003:5000"
+
   pgsql:
     image: postgres
     container_name: pgsql_container
