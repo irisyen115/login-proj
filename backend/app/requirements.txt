@@ -1,6 +1,6 @@
-flask
-psycopg2
-flask-bcrypt
-flask-cors
-flask_sqlalchemy
-dotenv
+Flask==2.2.3
+psycopg2==2.9.3
+flask-bcrypt==1.0.0
+flask-cors==3.1.1
+flask_sqlalchemy==2.5.1
+python-dotenv==0.19.2
