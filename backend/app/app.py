@@ -6,16 +6,34 @@ import random
 import string
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-import os
 from sqlalchemy import desc
+import requests
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
 
 load_dotenv()
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+REDIRECT_URI = os.getenv("REDIRECT_URI")
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+CORS(app, supports_credentials=True, origins=["https://irisyen115.synology.me"])
 init_db(app)
+
+@app.after_request
+def add_security_headers(response):
+    response.headers["Content-Security-Policy"] = "frame-ancestors 'none';"
+    return response
+
+@app.after_request
+def add_headers(response):
+    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
+    response.headers['Cross-Origin-Embedder-Policy'] = 'require-corp'
+    return response
+
 
 @app.route('/status')
 def status():
@@ -23,6 +41,52 @@ def status():
 
 def generate_reset_token(length):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
+@app.route('/auth/google/callback', methods=['POST'])
+def oauth_callback():
+    data = request.get_json()
+    id_token_from_google = data.get('id_token')
+
+    if not id_token_from_google:
+        return jsonify({"error": "缺少 id_token"}), 400
+
+    try:
+        decoded_token = id_token.verify_oauth2_token(
+            id_token_from_google, Request(), CLIENT_ID
+        )
+
+        username = decoded_token.get('name')
+        email = decoded_token.get('email')
+        app.logger.error(decoded_token)
+        if not email:
+            return jsonify({"error": "無法取得使用者的 email"}), 400
+
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(username=username, email=email)
+            db.session.add(user)
+            db.session.commit()
+
+        user.last_login = datetime.now()
+        user.login_count += 1
+        db.session.commit()
+
+        response = make_response(jsonify({
+            "message": "Google 登入成功",
+            "user": username,
+            "role": user.role,
+            "last_login": user.last_login,
+            "login_count": user.login_count
+        }))
+
+        response.set_cookie("user_session", username, httponly=True, secure=True, samesite="None", max_age=3600)
+        response.set_cookie("role", user.role, httponly=True, secure=True, samesite="None", max_age=3600)
+
+        return response
+    except Exception as e:
+        app.logger.error({"error": f"Google OAuth 回調處理失敗: {str(e)}"})
+        return jsonify({"error": f"Google OAuth 回調處理失敗: {str(e)}"}), 400
 
 @app.route('/register', methods=['POST'])
 def register():
