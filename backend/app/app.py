@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from sqlalchemy import desc
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
+import requests
 
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
@@ -55,16 +56,29 @@ def oauth_callback():
 
         username = decoded_token.get('name')
         email = decoded_token.get('email')
+        picture = decoded_token.get('picture')
         app.logger.error(decoded_token)
         if not email:
             return jsonify({"error": "無法取得使用者的 email"}), 400
-
 
         user = User.query.filter_by(email=email).first()
         if not user:
             user = User(username=username, email=email)
             db.session.add(user)
-            db.session.commit()
+
+        filename = f"{user.id}.jpg"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        if picture:
+            image_data = requests.get(picture).content
+            filename = f"{user.id}.jpg"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+            with open(filepath, 'wb') as f:
+                f.write(image_data)
+
+            user.profile_image = filepath
+            user.picture_name = filename
+            db.session.add(user)
 
         user.last_login = datetime.now()
         user.login_count += 1
@@ -78,7 +92,7 @@ def oauth_callback():
             "login_count": user.login_count
         }))
 
-        response.set_cookie("user_session", username, httponly=True, secure=True, samesite="None", max_age=3600)
+        response.set_cookie("user_session", email, httponly=True, secure=True, samesite="None", max_age=3600)
         response.set_cookie("role", user.role, httponly=True, secure=True, samesite="None", max_age=3600)
 
         return response
