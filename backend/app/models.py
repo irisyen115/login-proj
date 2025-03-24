@@ -10,7 +10,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.Text, nullable=False)
+    password_hash = db.Column(db.Text, nullable=True)
     role = db.Column(db.String(20), default="user")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -23,10 +23,11 @@ class User(db.Model):
     password_verification = db.relationship('PasswordVerify', back_populates='user', cascade="all, delete-orphan")
     email_verifications = db.relationship('EmailVerify', back_populates='user', cascade="all, delete-orphan")
 
-    def __init__(self, username, email, password):
+    def __init__(self, username, email, password=None):
         self.username = username
         self.email = email
-        self.set_password(password)
+        if password:
+            self.set_password(password)
 
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
@@ -45,7 +46,7 @@ class PasswordVerify(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     valid_until = db.Column(db.DateTime, nullable=False)
     password_verify_code = db.Column(db.String(50), nullable=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)  
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
 
     user = db.relationship('User', back_populates='password_verification')
 
@@ -56,7 +57,7 @@ class EmailVerify(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     valid_until = db.Column(db.DateTime, nullable=False)
     email_verify_code = db.Column(db.String(50), nullable=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)  
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
 
     user = db.relationship('User', back_populates='email_verifications')
 
