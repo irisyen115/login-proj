@@ -4,18 +4,12 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <meta name="description" content="這是一個 Vue.js 登入頁面，支援 Google 登入">
-    <meta name="keywords" content="Vue, 登入, OAuth, Google Sign-In">
-    <meta name="author" content="Your Name">
     <meta name="google-signin-client_id" content="825100576956-ia8d4ulk2dapck8f3h5jmr10p14uf54q.apps.googleusercontent.com">
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://accounts.google.com">
 
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title><%= htmlWebpackPlugin.options.title %></title>
 
-    <!-- Google Sign-In API -->
-    <!-- <script src="https://accounts.google.com/gsi/client" async defer></script> -->
-    <!-- <script src="https://apis.google.com/js/platform.js" async defer></script> -->
     <script src="https://accounts.google.com/gsi/client" async></script>
 
   </head>
@@ -24,6 +18,5 @@
       <strong>很抱歉，但 <%= htmlWebpackPlugin.options.title %> 無法在 JavaScript 未啟用的情況下正常運行。請啟用 JavaScript 以繼續。</strong>
     </noscript>
     <div id="app"></div>
-    <!-- built files will be auto injected -->
   </body>
 </html>

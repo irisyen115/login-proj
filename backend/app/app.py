@@ -7,7 +7,6 @@ import string
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from sqlalchemy import desc
-import requests
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
 
@@ -23,6 +22,13 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 CORS(app, supports_credentials=True, origins=["https://irisyen115.synology.me"])
 init_db(app)
 
+@app.route('/status')
+def status():
+    return jsonify({"status": "ok"})
+
+def generate_reset_token(length):
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
 @app.after_request
 def add_security_headers(response):
     response.headers["Content-Security-Policy"] = "frame-ancestors 'none';"
@@ -33,14 +39,6 @@ def add_headers(response):
     response.headers['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
     response.headers['Cross-Origin-Embedder-Policy'] = 'require-corp'
     return response
-
-
-@app.route('/status')
-def status():
-    return jsonify({"status": "ok"})
-
-def generate_reset_token(length):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 @app.route('/auth/google/callback', methods=['POST'])
 def oauth_callback():
