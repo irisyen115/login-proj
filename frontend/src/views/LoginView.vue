@@ -8,7 +8,6 @@
         <button type="submit" class="btn login-btn">登入</button>
       </form>
       <div id="google-signin-button"></div>
-      <!-- <div class="g-signin2" data-onsuccess="onSignIn"></div> -->
       <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
       <p>忘記密碼？<a @click.prevent="goToSendAuthentication" style="cursor: pointer; color: blue;">點此重設</a></p>
       <p>尚未註冊？<a @click.prevent="goToRegister" style="cursor: pointer; color: blue;">點此註冊</a></p>
