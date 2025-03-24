@@ -33,7 +33,7 @@ def register():
     if not username or not password or not email:
         return jsonify({"error": "請提供帳號、密碼和電子郵件"}), 400
 
-    existing_user = User.query.filter_by(username=username).first()
+    existing_user = User.query.filter_by(email=email).first()
     if existing_user:
         return jsonify({"error": "帳號已存在"}), 400
 
@@ -45,8 +45,8 @@ def register():
     db.session.add(new_user)
     db.session.commit()
 
-    response = make_response(jsonify({"message": "註冊成功", "user": username, "role": "user"}))
-    response.set_cookie("user_session", username, httponly=True, secure=True, samesite="Strict")
+    response = make_response(jsonify({"message": "註冊成功", "user": email, "role": "user"}))
+    response.set_cookie("user_session", email, httponly=True, secure=True, samesite="Strict")
     response.set_cookie("role", "user", httponly=True, secure=True, samesite="Strict")
 
     return response, 201
@@ -74,7 +74,7 @@ def login():
         "last_login": user.last_login,
         "login_count": user.login_count
     }))
-    response.set_cookie("user_session", username, httponly=True, secure=True, samesite="Strict")
+    response.set_cookie("user_session", user.email, httponly=True, secure=True, samesite="Strict")
     response.set_cookie("role", user.role, httponly=True, secure=True, samesite="Strict")
     return response
 
@@ -86,8 +86,8 @@ def logout():
 
 @app.route('/users', methods=['GET'])
 def get_users():
-    username = request.cookies.get("user_session", "").strip()
-    user = User.query.filter_by(username=username).first()
+    email = request.cookies.get("user_session", "").strip()
+    user = User.query.filter_by(email=email).first()
     role = user.role
     if not role:
         return jsonify({"error": "未授權"}), 401
@@ -95,7 +95,7 @@ def get_users():
     if role == "admin":
         users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).all()
     elif role == "user":
-        users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).filter_by(username=username).all()
+        users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).filter_by(email=email).all()
     else:
         return jsonify({"error": "無法識別角色"}), 403
     return jsonify([user._asdict() for user in users])
@@ -111,11 +111,11 @@ def upload_file():
         return jsonify({"error": "請提供照片"}), 400
 
     file = request.files['file']
-    username = request.cookies.get("user_session", "").strip()
-    if not file or not username:
+    email = request.cookies.get("user_session", "").strip()
+    if not file or not email:
         return jsonify({"error": "請提供帳號與照片"}), 400
 
-    user = User.query.filter_by(username=username).first()
+    user = User.query.filter_by(email=email).first()
     if not user:
         return jsonify({"error": "使用者不存在"}), 404
 
@@ -130,11 +130,11 @@ def upload_file():
 
 @app.route('/get_user_image', methods=['GET'])
 def get_user_image():
-    username = request.cookies.get("user_session", "").strip()
-    if not username:
+    email = request.cookies.get("user_session", "").strip()
+    if not email:
         return jsonify({"error": "未授權"}), 401
 
-    user = User.query.filter_by(username=username).first()
+    user = User.query.filter_by(email=email).first()
     if not user:
         return jsonify({"error": "用戶未找到"}), 404
 
@@ -162,7 +162,7 @@ def send_authentication():
             return jsonify({"message": "用戶不存在"}), 404
         if not user.email:
             return jsonify({"message": "用戶未綁定 Email，請先綁定"}), 400
-        
+
         password_verify = PasswordVerify.query.filter_by(user_id=user.id).order_by(desc(PasswordVerify.valid_until)).first()
         current_time = datetime.utcnow()
         if password_verify and current_time <= password_verify.valid_until:
@@ -192,7 +192,7 @@ def verify_email():
             return jsonify({"message": "用戶不存在"}), 404
         if not user.email:
             return jsonify({"message": "用戶未綁定 Email，若需綁定，請洽系統服務"}), 400
-        
+
         email_verify = EmailVerify.query.filter_by(user_id=user.id).order_by(desc(EmailVerify.valid_until)).first()
         current_time = datetime.utcnow()
         if email_verify and current_time <= email_verify.valid_until:
