@@ -94,7 +94,7 @@ const handleCredentialResponse = (response) => {
     const idToken = response.credential;
     console.log("收到的 Google id_token:", response.credential);
 
-    fetch(`/auth/google/callback`, {
+    fetch(`/api/auth/google/callback`, {
       method: "POST",
       body: JSON.stringify({ id_token: idToken }),
       headers: { "Content-Type": "application/json" },
