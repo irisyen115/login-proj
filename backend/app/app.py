@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify, make_response, send_from_directory
+from flask import Flask, request, jsonify, make_response, send_from_directory, g
 from flask_cors import CORS
 from models import db, init_db, User, PasswordVerify, EmailVerify
 import random
@@ -22,6 +22,11 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 CORS(app, supports_credentials=True, origins=["https://irisyen115.synology.me"])
 init_db(app)
+
+@app.before_request
+def get_user_id():
+    user_id = request.cookies.get("user_id", "").strip()
+    g.user_id = int(user_id) if user_id.isdigit() else None
 
 @app.route('/status')
 def status():
@@ -54,8 +59,6 @@ def oauth_callback():
             user = User(username=username, email=email)
             db.session.add(user)
 
-        filename = f"{user.id}.jpg"
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         if picture:
             image_data = requests.get(picture).content
             filename = f"{user.id}.jpg"
@@ -150,16 +153,18 @@ def logout():
 
 @app.route('/users', methods=['GET'])
 def get_users():
-    user_id = request.cookies.get("user_id", "").strip()
-    user = User.query.filter_by(id=int(user_id)).first()
-    role = user.role
-    if not role or not user_id:
+    if not g.user_id:
         return jsonify({"error": "未授權"}), 401
 
+    user = User.query.filter_by(id=g.user_id).first()
+    if not user:
+        return jsonify({"error": "使用者不存在"}), 404
+
+    role = user.role
     if role == "admin":
         users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).all()
     elif role == "user":
-        users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).filter_by(id=int(user_id))
+        users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).filter_by(id=g.user_id)
     else:
         return jsonify({"error": "無法識別角色"}), 403
     return jsonify([user._asdict() for user in users])
@@ -175,15 +180,17 @@ def upload_file():
         return jsonify({"error": "請提供照片"}), 400
 
     file = request.files['file']
-    user_id = request.cookies.get("user_id", "").strip()
     if not file:
         return jsonify({"error": "請提供照片"}), 400
 
-    user = User.query.filter_by(id=int(user_id)).first()
+    if not g.user_id:
+        return jsonify({"error": "未授權"}), 401
+
+    user = User.query.filter_by(id=g.user_id).first()
     if not user:
         return jsonify({"error": "使用者不存在"}), 404
 
-    filename = f"{user_id}.jpg"
+    filename = f"{g.user_id}.jpg"
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
 
@@ -194,8 +201,10 @@ def upload_file():
 
 @app.route('/get_user_image', methods=['GET'])
 def get_user_image():
-    user_id = request.cookies.get("user_id", "").strip()
-    user = User.query.filter_by(id=int(user_id)).first()
+    if not g.user_id:
+        return jsonify({"error": "未授權"}), 401
+
+    user = User.query.filter_by(id=g.user_id).first()
     if not user:
         return jsonify({"error": "用戶未找到"}), 404
 
