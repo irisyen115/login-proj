@@ -153,13 +153,13 @@ def get_users():
     user_id = request.cookies.get("user_id", "").strip()
     user = User.query.filter_by(id=int(user_id)).first()
     role = user.role
-    if not role:
+    if not role or not user_id:
         return jsonify({"error": "未授權"}), 401
 
     if role == "admin":
         users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).all()
     elif role == "user":
-        users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).filter_by(id=int(user_id)).all()
+        users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).filter_by(id=int(user_id))
     else:
         return jsonify({"error": "無法識別角色"}), 403
     return jsonify([user._asdict() for user in users])
