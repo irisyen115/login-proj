@@ -112,7 +112,7 @@ def register():
 
     response = make_response(jsonify({"message": "註冊成功", "user": username, "role": "user"}))
     response.set_cookie("user_session", username, httponly=True, secure=True, samesite="Strict")
-    response.set_cookie("user_id", new_user.id, httponly=True, secure=True, samesite="Strict")
+    response.set_cookie("user_id", str(new_user.id), httponly=True, secure=True, samesite="Strict")
     response.set_cookie("role", "user", httponly=True, secure=True, samesite="Strict")
 
     return response, 201
@@ -142,7 +142,7 @@ def login():
     }))
 
     response.set_cookie("user_session", username, httponly=True, secure=True, samesite="Strict")
-    response.set_cookie("user_id", user.id, httponly=True, secure=True, samesite="Strict")
+    response.set_cookie("user_id", str(user.id), httponly=True, secure=True, samesite="Strict")
     response.set_cookie("role", user.role, httponly=True, secure=True, samesite="Strict")
     return response
 
