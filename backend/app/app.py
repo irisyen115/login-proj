@@ -81,12 +81,12 @@ def oauth_callback():
             "login_count": user.login_count
         }))
 
-        response.set_cookie("user_session", email, httponly=True, secure=True, samesite="None", max_age=3600)
+        response.set_cookie("user_session", username, httponly=True, secure=True, samesite="None", max_age=3600)
+        response.set_cookie("user_id", str(user.id), httponly=True, secure=True, samesite="None", max_age=3600)
         response.set_cookie("role", user.role, httponly=True, secure=True, samesite="None", max_age=3600)
 
         return response
     except Exception as e:
-        app.logger.error({"error": f"Google OAuth 回調處理失敗: {str(e)}"})
         return jsonify({"error": f"Google OAuth 回調處理失敗: {str(e)}"}), 400
 
 @app.route('/register', methods=['POST'])
@@ -112,6 +112,7 @@ def register():
 
     response = make_response(jsonify({"message": "註冊成功", "user": username, "role": "user"}))
     response.set_cookie("user_session", username, httponly=True, secure=True, samesite="Strict")
+    response.set_cookie("user_id", new_user.id, httponly=True, secure=True, samesite="Strict")
     response.set_cookie("role", "user", httponly=True, secure=True, samesite="Strict")
 
     return response, 201
@@ -139,7 +140,9 @@ def login():
         "last_login": user.last_login,
         "login_count": user.login_count
     }))
+
     response.set_cookie("user_session", username, httponly=True, secure=True, samesite="Strict")
+    response.set_cookie("user_id", user.id, httponly=True, secure=True, samesite="Strict")
     response.set_cookie("role", user.role, httponly=True, secure=True, samesite="Strict")
     return response
 
@@ -151,8 +154,8 @@ def logout():
 
 @app.route('/users', methods=['GET'])
 def get_users():
-    username = request.cookies.get("user_session", "").strip()
-    user = User.query.filter_by(username=username).first()
+    user_id = request.cookies.get("user_id", "").strip()
+    user = User.query.filter_by(id=int(user_id)).first()
     role = user.role
     if not role:
         return jsonify({"error": "未授權"}), 401
@@ -160,7 +163,7 @@ def get_users():
     if role == "admin":
         users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).all()
     elif role == "user":
-        users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).filter_by(username=username).all()
+        users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).filter_by(id=int(user_id)).all()
     else:
         return jsonify({"error": "無法識別角色"}), 403
     return jsonify([user._asdict() for user in users])
@@ -227,7 +230,7 @@ def send_authentication():
             return jsonify({"message": "用戶不存在"}), 404
         if not user.email:
             return jsonify({"message": "用戶未綁定 Email，請先綁定"}), 400
-        
+
         password_verify = PasswordVerify.query.filter_by(user_id=user.id).order_by(desc(PasswordVerify.valid_until)).first()
         current_time = datetime.utcnow()
         if password_verify and current_time <= password_verify.valid_until:
@@ -257,7 +260,7 @@ def verify_email():
             return jsonify({"message": "用戶不存在"}), 404
         if not user.email:
             return jsonify({"message": "用戶未綁定 Email，若需綁定，請洽系統服務"}), 400
-        
+
         email_verify = EmailVerify.query.filter_by(user_id=user.id).order_by(desc(EmailVerify.valid_until)).first()
         current_time = datetime.utcnow()
         if email_verify and current_time <= email_verify.valid_until:
