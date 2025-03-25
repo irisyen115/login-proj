@@ -30,17 +30,6 @@ def status():
 def generate_reset_token(length):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
-@app.after_request
-def add_security_headers(response):
-    response.headers["Content-Security-Policy"] = "frame-ancestors 'none';"
-    return response
-
-@app.after_request
-def add_headers(response):
-    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
-    response.headers['Cross-Origin-Embedder-Policy'] = 'require-corp'
-    return response
-
 @app.route('/auth/google/callback', methods=['POST'])
 def oauth_callback():
     data = request.get_json()
