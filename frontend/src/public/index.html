@@ -1,17 +1,22 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="zh-TW">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta name="google-signin-client_id" content="825100576956-ia8d4ulk2dapck8f3h5jmr10p14uf54q.apps.googleusercontent.com">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://accounts.google.com">
+
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title><%= htmlWebpackPlugin.options.title %></title>
+
+    <script src="https://accounts.google.com/gsi/client" async></script>
+
   </head>
   <body>
     <noscript>
-      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+      <strong>很抱歉，但 <%= htmlWebpackPlugin.options.title %> 無法在 JavaScript 未啟用的情況下正常運行。請啟用 JavaScript 以繼續。</strong>
     </noscript>
     <div id="app"></div>
-    <!-- built files will be auto injected -->
   </body>
 </html>

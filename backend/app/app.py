@@ -6,15 +6,21 @@ import random
 import string
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-import os
 from sqlalchemy import desc
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
+import requests
 
 load_dotenv()
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+REDIRECT_URI = os.getenv("REDIRECT_URI")
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+CORS(app, supports_credentials=True, origins=["https://irisyen115.synology.me"])
 init_db(app)
 
 @app.route('/status')
@@ -23,6 +29,65 @@ def status():
 
 def generate_reset_token(length):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
+@app.route('/auth/google/callback', methods=['POST'])
+def oauth_callback():
+    data = request.get_json()
+    id_token_from_google = data.get('id_token')
+
+    if not id_token_from_google:
+        return jsonify({"error": "缺少 id_token"}), 400
+
+    try:
+        decoded_token = id_token.verify_oauth2_token(
+            id_token_from_google, Request(), CLIENT_ID
+        )
+
+        username = decoded_token.get('name')
+        email = decoded_token.get('email')
+        picture = decoded_token.get('picture')
+        app.logger.error(decoded_token)
+        if not email:
+            return jsonify({"error": "無法取得使用者的 email"}), 400
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(username=username, email=email)
+            db.session.add(user)
+
+        filename = f"{user.id}.jpg"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        if picture:
+            image_data = requests.get(picture).content
+            filename = f"{user.id}.jpg"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+            with open(filepath, 'wb') as f:
+                f.write(image_data)
+
+            user.profile_image = filepath
+            user.picture_name = filename
+            db.session.add(user)
+
+        user.last_login = datetime.now()
+        user.login_count += 1
+        db.session.commit()
+
+        response = make_response(jsonify({
+            "message": "Google 登入成功",
+            "user": username,
+            "role": user.role,
+            "last_login": user.last_login,
+            "login_count": user.login_count
+        }))
+
+        response.set_cookie("user_session", email, httponly=True, secure=True, samesite="None", max_age=3600)
+        response.set_cookie("role", user.role, httponly=True, secure=True, samesite="None", max_age=3600)
+
+        return response
+    except Exception as e:
+        app.logger.error({"error": f"Google OAuth 回調處理失敗: {str(e)}"})
+        return jsonify({"error": f"Google OAuth 回調處理失敗: {str(e)}"}), 400
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -162,7 +227,7 @@ def send_authentication():
             return jsonify({"message": "用戶不存在"}), 404
         if not user.email:
             return jsonify({"message": "用戶未綁定 Email，請先綁定"}), 400
-        
+
         password_verify = PasswordVerify.query.filter_by(user_id=user.id).order_by(desc(PasswordVerify.valid_until)).first()
         current_time = datetime.utcnow()
         if password_verify and current_time <= password_verify.valid_until:
@@ -192,7 +257,7 @@ def verify_email():
             return jsonify({"message": "用戶不存在"}), 404
         if not user.email:
             return jsonify({"message": "用戶未綁定 Email，若需綁定，請洽系統服務"}), 400
-        
+
         email_verify = EmailVerify.query.filter_by(user_id=user.id).order_by(desc(EmailVerify.valid_until)).first()
         current_time = datetime.utcnow()
         if email_verify and current_time <= email_verify.valid_until:
