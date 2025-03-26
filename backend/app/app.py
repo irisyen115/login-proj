@@ -18,12 +18,16 @@ REDIRECT_URI = os.getenv("REDIRECT_URI")
 LINE_REPLY_URL = os.getenv("LINE_REPLY_URL")
 LINE_ACCESS_TOKEN = os.getenv("LINE_ACCESS_TOKEN")
 SERVER_URL = os.getenv("SERVER_URL")
+redis_host = os.getenv('REDIS_HOST')
+redis_port = int(os.getenv('REDIS_PORT'))
+redis_db = int(os.getenv('REDIS_DB'))
+
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 init_db(app)
-redis_client = redis.StrictRedis(host="redis_container", port=6379, db=0, decode_responses=True)
+redis_client = redis.StrictRedis(host="redis_host", port=redis_port, db=redis_db, decode_responses=True)
 
 def trigger_email(url, recipient, subject, body_str):
     data = {
@@ -160,7 +164,6 @@ def oauth_callback():
 
         return response
     except Exception as e:
-        app.logger.error({"error": f"Google OAuth 回調處理失敗: {str(e)}"})
         return jsonify({"error": f"Google OAuth 回調處理失敗: {str(e)}"}), 400
 
 @app.route('/register', methods=['POST'])
@@ -225,16 +228,18 @@ def logout():
     return response
 
 def get_user_by_id(uid):
-    cached_user_data = redis_client.get(f"user:{uid}")
+    try:
+        cached_user_data = redis_client.get(f"user:{uid}")
 
-    if cached_user_data:
-        return User.from_json(cached_user_data)
-    else:
-        user = User.query.filter_by(id=int(uid)).first()
-        if user:
-            redis_client.setex(f"user:{uid}", 3600, user.to_json())
-        return user
-
+        if cached_user_data:
+            return User.from_json(cached_user_data)
+        else:
+            user = User.query.filter_by(id=int(uid)).first()
+            if user:
+                redis_client.setex(f"user:{uid}", 3600, user.to_json())
+            return user
+    except Exception as e:
+        return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
 
 @app.route('/users', methods=['GET'])
 def get_users():
