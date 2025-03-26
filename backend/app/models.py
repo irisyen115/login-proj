@@ -42,13 +42,8 @@ class User(db.Model):
 
     def to_dict(self):
         return {
-            "id": self.id,
-            "username": self.username,
-            "email": self.email,
-            "password": self.password_hash,
-            "role":self.role,
-            "profile_image":self.profile_image,
-            "picture_name":self.picture_name
+            col.name: (getattr(self, col.name).isoformat() if isinstance(getattr(self, col.name), datetime) else getattr(self, col.name))
+            for col in self.__table__.columns
         }
 
     def to_json(self):
@@ -59,6 +54,8 @@ class User(db.Model):
         data_dict = json.loads(json_data)
         u = User(data_dict['username'], data_dict['email'], data_dict.get('password'))
         u.role = data_dict.get('role')
+        u.last_login = data_dict.get('last_login')
+        u.login_count = data_dict.get('login_count')
         u.profile_image = data_dict.get('profile_image')
         u.picture_name = data_dict.get('picture_name')
         return u
