@@ -69,6 +69,11 @@ services:
     command: ["python", "mail_server.py"]
     networks:
       - backend_net
+  redis:
+    image: redis:5.0.5-alpine
+    container_name: redis_container
+    ports:
+      - "6379:6379"
 
   pgsql:
     image: postgres

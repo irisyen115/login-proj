@@ -9,6 +9,7 @@ from sqlalchemy import desc
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
 import requests
+import redis
 
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
@@ -22,6 +23,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 init_db(app)
+redis_client = redis.StrictRedis(host="redis_container", port=6379, db=0, decode_responses=True)
 
 def trigger_email(url, recipient, subject, body_str):
     data = {
@@ -218,8 +220,21 @@ def login():
 @app.route('/logout')
 def logout():
     response = make_response(jsonify({"message": "登出成功"}))
-    response.set_cookie("user_session", "", expires=0)
+    response.set_cookie("user_id", "", expires=0)
+    response.set_cookie("role", "", expires=0)
     return response
+
+def get_user_by_id(uid):
+    cached_user_data = redis_client.get(f"user:{uid}")
+
+    if cached_user_data:
+        return User.from_json(cached_user_data)
+    else:
+        user = User.query.filter_by(id=int(uid)).first()
+        if user:
+            redis_client.setex(f"user:{uid}", 3600, user.to_json())
+        return user
+
 
 @app.route('/users', methods=['GET'])
 def get_users():
@@ -281,7 +296,7 @@ def get_user_image():
     if not g.user_id:
         return jsonify({"error": "未授權"}), 401
 
-    user = User.query.filter_by(id=g.user_id).first()
+    user = get_user_by_id(g.user_id)
     if not user:
         return jsonify({"error": "用戶未找到"}), 404
 
