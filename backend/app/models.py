@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from datetime import datetime
+import json
 
 db = SQLAlchemy()
 bcrypt = Bcrypt()
@@ -38,6 +39,26 @@ class User(db.Model):
     def update_last_login(self):
         self.last_login = datetime.utcnow()
         self.login_count += 1
+
+    def to_dict(self):
+        return {
+            col.name: (getattr(self, col.name).isoformat() if isinstance(getattr(self, col.name), datetime) else getattr(self, col.name))
+            for col in self.__table__.columns
+        }
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
+    @staticmethod
+    def from_json(json_data):
+        data_dict = json.loads(json_data)
+        u = User(data_dict['username'], data_dict['email'], data_dict.get('password'))
+        u.role = data_dict.get('role')
+        u.last_login = data_dict.get('last_login')
+        u.login_count = data_dict.get('login_count')
+        u.profile_image = data_dict.get('profile_image')
+        u.picture_name = data_dict.get('picture_name')
+        return u
 
 class PasswordVerify(db.Model):
     __tablename__ = "password_verification"

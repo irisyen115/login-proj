@@ -1,6 +1,5 @@
 import os
-from flask import Flask, request, jsonify, make_response, send_from_directory, g
-from flask_cors import CORS
+from flask import Flask, request, jsonify, make_response, send_from_directory, g, json
 from models import db, init_db, User, PasswordVerify, EmailVerify
 import random
 import string
@@ -10,18 +9,22 @@ from sqlalchemy import desc
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
 import requests
+import redis
 
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
+redis_host = os.getenv('REDIS_HOST')
+redis_port = int(os.getenv('REDIS_PORT'))
+redis_db = int(os.getenv('REDIS_DB'))
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-CORS(app, supports_credentials=True, origins=["https://irisyen115.synology.me"])
 init_db(app)
+redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
 
 @app.before_request
 def get_user_id():
@@ -34,6 +37,24 @@ def status():
 
 def generate_reset_token(length):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
+def user_key(uid):
+    return f"user:{uid}"
+
+def write_through(uid):
+    cached_user_data = redis_client.get(user_key(uid))
+    try:
+        if cached_user_data:
+            cached_user_data = json.loads(cached_user_data)
+            cached_user_data['last_login'] = datetime.now()
+            cached_user_data['login_count'] += 1
+            redis_client.setex(f"user:{uid}", 3600, json.dumps(cached_user_data))
+        else:
+            user = User.query.filter_by(id=int(uid)).first()
+            if user:
+                redis_client.setex(user_key(uid), 3600, user.to_json())
+    except Exception as e:
+        app.logger.error(e)
 
 @app.route('/auth/google/callback', methods=['POST'])
 def oauth_callback():
@@ -71,6 +92,7 @@ def oauth_callback():
             user.picture_name = filename
             db.session.add(user)
 
+        write_through(user.id)
         user.last_login = datetime.now()
         user.login_count += 1
         db.session.commit()
@@ -88,7 +110,6 @@ def oauth_callback():
 
         return response
     except Exception as e:
-        app.logger.error({"error": f"Google OAuth 回調處理失敗: {str(e)}"})
         return jsonify({"error": f"Google OAuth 回調處理失敗: {str(e)}"}), 400
 
 @app.route('/register', methods=['POST'])
@@ -130,6 +151,7 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "帳號或密碼錯誤"}), 401
 
+    write_through(user.id)
     user.last_login = datetime.now()
     user.login_count += 1
     db.session.commit()
@@ -148,26 +170,44 @@ def login():
 @app.route('/logout')
 def logout():
     response = make_response(jsonify({"message": "登出成功"}))
-    response.set_cookie("user_session", "", expires=0)
+    response.set_cookie("user_id", "", expires=0)
+    response.set_cookie("role", "", expires=0)
     return response
+
+def get_user_by_id(uid):
+    try:
+        cached_user_data = redis_client.get(f"user:{uid}")
+        if cached_user_data:
+            return User.from_json(cached_user_data)
+        else:
+            user = User.query.filter_by(id=int(uid)).first()
+            if user:
+                redis_client.setex(f"user:{uid}", 3600, user.to_json())
+            return user
+    except Exception as e:
+        app.logger.error(e)
+        return None
 
 @app.route('/users', methods=['GET'])
 def get_users():
     if not g.user_id:
         return jsonify({"error": "未授權"}), 401
 
-    user = User.query.filter_by(id=g.user_id).first()
+    user = get_user_by_id(g.user_id)
     if not user:
         return jsonify({"error": "使用者不存在"}), 404
 
     role = user.role
     if role == "admin":
         users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).all()
+        users_data = [user_row._asdict() for user_row in users]
+        return jsonify(users_data)
     elif role == "user":
-        users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).filter_by(id=g.user_id)
+        user_list = user.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role)
+        users_data = [user_col.to_dict() for user_col in user_list]
+        return jsonify(users_data)
     else:
         return jsonify({"error": "無法識別角色"}), 403
-    return jsonify([user._asdict() for user in users])
 
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -204,7 +244,7 @@ def get_user_image():
     if not g.user_id:
         return jsonify({"error": "未授權"}), 401
 
-    user = User.query.filter_by(id=g.user_id).first()
+    user = get_user_by_id(g.user_id)
     if not user:
         return jsonify({"error": "用戶未找到"}), 404
 
