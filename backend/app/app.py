@@ -27,7 +27,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 init_db(app)
-redis_client = redis.StrictRedis(host="redis_host", port=redis_port, db=redis_db, decode_responses=True)
+redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
 
 def trigger_email(url, recipient, subject, body_str):
     data = {
@@ -111,6 +111,24 @@ def status():
 def generate_reset_token(length):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
+def user_key(uid):
+    return f"user:{uid}"
+
+def write_through(uid):
+    cached_user_data = redis_client.get(user_key(uid))
+    try:
+        if cached_user_data:
+            cached_user_data = json.loads(cached_user_data)
+            cached_user_data['last_login'] = datetime.now()
+            cached_user_data['login_count'] += 1
+            redis_client.setex(f"user:{uid}", 3600, json.dumps(cached_user_data))
+        else:
+            user = User.query.filter_by(id=int(uid)).first()
+            if user:
+                redis_client.setex(user_key(uid), 3600, user.to_json())
+    except Exception as e:
+        app.logger.error(e)
+
 @app.route('/auth/google/callback', methods=['POST'])
 def oauth_callback():
     data = request.get_json()
@@ -147,6 +165,7 @@ def oauth_callback():
             user.picture_name = filename
             db.session.add(user)
 
+        write_through(user.id)
         user.last_login = datetime.now()
         user.login_count += 1
         db.session.commit()
@@ -205,6 +224,7 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "帳號或密碼錯誤"}), 401
 
+    write_through(user.id)
     user.last_login = datetime.now()
     user.login_count += 1
     db.session.commit()
@@ -230,7 +250,6 @@ def logout():
 def get_user_by_id(uid):
     try:
         cached_user_data = redis_client.get(f"user:{uid}")
-
         if cached_user_data:
             return User.from_json(cached_user_data)
         else:
@@ -239,7 +258,8 @@ def get_user_by_id(uid):
                 redis_client.setex(f"user:{uid}", 3600, user.to_json())
             return user
     except Exception as e:
-        return jsonify({"error": f"發生錯誤: {str(e)}"}), 500
+        app.logger.error(e)
+        return None
 
 @app.route('/users', methods=['GET'])
 def get_users():
