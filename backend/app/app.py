@@ -153,21 +153,28 @@ def logout():
 
 @app.route('/users', methods=['GET'])
 def get_users():
-    if not g.user_id:
-        return jsonify({"error": "未授權"}), 401
+    try:
+        if not g.user_id:
+            return jsonify({"error": "未授權"}), 401
 
-    user = User.query.filter_by(id=g.user_id).first()
-    if not user:
-        return jsonify({"error": "使用者不存在"}), 404
+        user = get_user_by_id(g.user_id)
+        if not user:
+            return jsonify({"error": "使用者不存在"}), 404
 
-    role = user.role
-    if role == "admin":
-        users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).all()
-    elif role == "user":
-        users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).filter_by(id=g.user_id)
-    else:
-        return jsonify({"error": "無法識別角色"}), 403
-    return jsonify([user._asdict() for user in users])
+        role = user.role
+        if role == "admin":
+            users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).all()
+            users_data = [user_row._asdict() for user_row in users]
+            return jsonify(users_data)
+        elif role == "user":
+            user_list = [user]
+            users_data = [user_col.to_dict() for user_col in user_list]
+            return jsonify(users_data)
+        else:
+            return jsonify({"error": "無法識別角色"}), 403
+    except Exception as e:
+        app.logger.error(f"獲取使用者失敗: {str(e)}")
+        return jsonify({"error": "內部伺服器錯誤"}), 500
 
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
