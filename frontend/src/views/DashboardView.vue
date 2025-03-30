@@ -46,6 +46,7 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import { ref, onMounted } from 'vue';
+import { eventBus } from '../utils/eventBus';
 
 const axios = require('axios').default;
 const router = useRouter();
@@ -100,13 +101,19 @@ const uploadAvatar = async () => {
 
   try {
     const response = await axios.post('/api/upload-avatar', formData);
-    avatarUrl.value = response.data.avatarUrl;
-    sessionStorage.setItem('avatarUrl', avatarUrl.value);
-    window.confirm("大頭貼上傳成功！");
+
+    if (response.data.avatar_url) {
+      avatarUrl.value = response.data.avatar_url;
+      sessionStorage.setItem('avatarUrl', avatarUrl.value);
+      window.confirm("大頭貼上傳成功！");
+      eventBus.emit('avatarUpdated');
+    }
+
   } catch (error) {
-    console.error("上傳失敗:", error);
+    console.error("上傳或獲取圖片失敗:", error);
   }
 };
+
 
 const fetchUserData = async () => {
   const token = localStorage.getItem("token");

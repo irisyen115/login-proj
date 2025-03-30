@@ -12,27 +12,28 @@
 </template>
 
 <script setup>
-  import { ref, onMounted } from 'vue';
-  import { useRouter } from 'vue-router';
-  import axios from 'axios';
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import axios from 'axios';
 
-  const router = useRouter();
+const router = useRouter();
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    sessionStorage.clear();
-    router.push('/');
-  };
+const logout = () => {
+  localStorage.removeItem('token');
+  sessionStorage.clear();
+  router.push('/');
+};
 
-  const profileImage = ref('');
-  const username = ref(sessionStorage.getItem('username'));
+const profileImage = ref('');
+const username = ref(sessionStorage.getItem('username'));
+import { eventBus } from '../utils/eventBus';
 
-  const fetchUserImage = async () => {
-  try {
-    const response = await axios.get('/api/get_user_image', { responseType: 'blob', withCredentials: true });
-    console.log("API 回傳的資料:", response);
+const fetchUserImage = async () => {
+try {
+  const response = await axios.get('/api/get_user_image', { responseType: 'blob', withCredentials: true });
+  console.log("API 回傳的資料:", response);
 
-    if (response.status === 200) {
+  if (response.status === 200) {
       const imageUrl = URL.createObjectURL(response.data);
       profileImage.value = imageUrl;
     }
@@ -41,6 +42,8 @@
     profileImage.value = '';
   }
 };
+
+eventBus.on('avatarUpdated', fetchUserImage);
 
 onMounted(fetchUserImage);
 </script>
