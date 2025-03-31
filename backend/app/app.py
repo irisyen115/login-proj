@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify, make_response, send_from_directory, g
+from flask import Flask, request, jsonify, make_response, send_from_directory, g, json
 from flask_cors import CORS
 from models import db, init_db, User, PasswordVerify, EmailVerify
 import random
@@ -23,10 +23,39 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 CORS(app, supports_credentials=True, origins=["https://irisyen115.synology.me"])
 init_db(app)
 
+def trigger_email(url, recipient, subject, body_str):
+    data = {
+        "recipient": recipient,
+        "subject": subject,
+        "body": body_str
+    }
+    response = requests.post(url, json=data)
+    if response.status_code == 200:
+        try:
+            return response.json()
+        except ValueError:
+            return {"error": "Invalid JSON response from email service"}
+    else:
+        return {"error": f"Failed to send email, status code: {response.status_code}"}
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    body = request.json
-    app.logger.error(body)
+    try:
+        body = request.json
+        for event in body["events"]:
+            if event["type"] == "message":
+                text = event["message"]["text"]
+
+                if "綁定" in text:
+                    url = "https://irisyen115.synology.me/send-mail"
+                    recipient = "irisyen115@gmail.com"
+                    subject = "綁定確認"
+                    body_str = "您的帳戶已成功綁定！"
+                    trigger_email(url, recipient, subject, body_str)
+    except Exception as e:
+        app.logger.error(f"Error in webhook: {str(e)}")
+        return "Internal Server Error", 500
+
     return "OK", 200
 
 @app.before_request
