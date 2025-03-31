@@ -54,6 +54,7 @@ class User(db.Model):
     def from_json(json_data):
         data_dict = json.loads(json_data)
         u = User(data_dict['username'], data_dict['email'], data_dict.get('password'))
+        u.id = data_dict.get('id')
         u.role = data_dict.get('role')
         u.created_at = datetime.fromisoformat(data_dict['created_at'])
         u.updated_at = datetime.fromisoformat(data_dict['updated_at'])
