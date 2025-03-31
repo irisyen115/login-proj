@@ -1,7 +1,8 @@
-from flask_sqlalchemy import SQLAlchemy, Enum
+from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from datetime import datetime
 import json
+from sqlalchemy import Enum
 
 db = SQLAlchemy()
 bcrypt = Bcrypt()
@@ -54,10 +55,13 @@ class User(db.Model):
         data_dict = json.loads(json_data)
         u = User(data_dict['username'], data_dict['email'], data_dict.get('password'))
         u.role = data_dict.get('role')
-        u.last_login = data_dict.get('last_login')
+        u.created_at = datetime.fromisoformat(data_dict['created_at'])
+        u.updated_at = datetime.fromisoformat(data_dict['updated_at'])
+        u.last_login = datetime.fromisoformat(data_dict['last_login'])
         u.login_count = data_dict.get('login_count')
         u.profile_image = data_dict.get('profile_image')
         u.picture_name = data_dict.get('picture_name')
+        u.password_hash = data_dict.get('password_hash')
         return u
 
 class PasswordVerify(db.Model):
