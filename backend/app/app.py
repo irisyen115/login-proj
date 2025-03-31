@@ -23,6 +23,12 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 CORS(app, supports_credentials=True, origins=["https://irisyen115.synology.me"])
 init_db(app)
 
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    body = request.json
+    app.logger.error(body)
+    return "OK", 200
+
 @app.before_request
 def get_user_id():
     user_id = request.cookies.get("user_id", "").strip()
