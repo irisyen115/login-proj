@@ -15,6 +15,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import { eventBus } from '../utils/eventBus';
 
 const router = useRouter();
 
@@ -26,8 +27,6 @@ const logout = () => {
 
 const profileImage = ref('');
 const username = ref(sessionStorage.getItem('username'));
-import { eventBus } from '../utils/eventBus';
-
 const fetchUserImage = async () => {
 try {
   const response = await axios.get('/api/get_user_image', { responseType: 'blob', withCredentials: true });
