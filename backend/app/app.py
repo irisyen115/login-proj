@@ -17,12 +17,12 @@ CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
 LINE_REPLY_URL = os.getenv("LINE_REPLY_URL")
 LINE_ACCESS_TOKEN = os.getenv("LINE_ACCESS_TOKEN")
-EMAIL_SERVER_URL = os.getenv("EMAIL_SERVER_URL")
+SERVER_URL = os.getenv("SERVER_URL")
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-CORS(app, supports_credentials=True, origins=["https://irisyen115.synology.me"])
+CORS(app, supports_credentials=True, origins=[SERVER_URL])
 init_db(app)
 
 def trigger_email(url, recipient, subject, body_str):
@@ -50,7 +50,7 @@ def webhook():
                 uid = event["source"]["userId"]
 
                 if "綁定" in text:
-                    login_url = f"https://irisyen115.synology.me/Line-login?uid={uid}"
+                    login_url = f"{SERVER_URL}/Line-login?uid={uid}"
                     reply_message(event["replyToken"], f"請點擊以下網址進行綁定：\n{login_url}")
     except Exception as e:
         app.logger.error(f"Error in webhook: {str(e)}")
@@ -85,7 +85,7 @@ def bind_email():
 
         subject = "帳戶綁定確認"
         body_str = f"您的 Line 已綁定此 Email！"
-        email_response = trigger_email(EMAIL_SERVER_URL, email, subject, body_str)
+        email_response = trigger_email(f"{SERVER_URL}/send-mail", email, subject, body_str)
 
         if "error" in email_response:
             return jsonify({"error": "Email 發送失敗"}), 500
