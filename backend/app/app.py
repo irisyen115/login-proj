@@ -15,7 +15,9 @@ load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
-
+LINE_REPLY_URL = os.getenv("LINE_REPLY_URL")
+LINE_ACCESS_TOKEN = os.getenv("LINE_ACCESS_TOKEN")
+EMAIL_SERVER_URL = os.getenv("EMAIL_SERVER_URL")
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -45,18 +47,53 @@ def webhook():
         for event in body["events"]:
             if event["type"] == "message":
                 text = event["message"]["text"]
+                uid = event["source"]["userId"]
 
                 if "綁定" in text:
-                    url = "https://irisyen115.synology.me/send-mail"
-                    recipient = "irisyen115@gmail.com"
-                    subject = "綁定確認"
-                    body_str = "您的帳戶已成功綁定！"
-                    trigger_email(url, recipient, subject, body_str)
+                    login_url = f"https://irisyen115.synology.me/Line-login?uid={uid}"
+                    reply_message(event["replyToken"], f"請點擊以下網址進行綁定：\n{login_url}")
     except Exception as e:
         app.logger.error(f"Error in webhook: {str(e)}")
         return "Internal Server Error", 500
-
     return "OK", 200
+
+def reply_message(reply_token, text):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {LINE_ACCESS_TOKEN}"
+    }
+    payload = {
+        "replyToken": reply_token,
+        "messages": [{"type": "text", "text": text}]
+    }
+    requests.post(LINE_REPLY_URL, json=payload, headers=headers)
+
+BIND_DATA = {}
+
+@app.route("/bind-email", methods=["POST"])
+def bind_email():
+    try:
+        data = request.json
+        uid = data.get("uid")
+        email = data.get("email")
+
+        if not uid or not email:
+            return jsonify({"error": "缺少 UID 或 Email"}), 400
+
+        BIND_DATA[uid] = email
+        app.logger.error(BIND_DATA)
+
+        subject = "帳戶綁定確認"
+        body_str = f"您的 Line 已綁定此 Email！"
+        email_response = trigger_email(EMAIL_SERVER_URL, email, subject, body_str)
+
+        if "error" in email_response:
+            return jsonify({"error": "Email 發送失敗"}), 500
+
+        return jsonify({"message": "綁定成功，請檢查您的 Email"}), 200
+    except Exception as e:
+        app.logger.error(f"Error in bind_email: {str(e)}")
+        return jsonify({"error": "伺服器錯誤"}), 500
 
 @app.before_request
 def get_user_id():
