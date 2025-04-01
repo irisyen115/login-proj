@@ -4,6 +4,7 @@ import RegisterView from '../views/RegisterView.vue';
 import DashboardView from '../views/DashboardView.vue';
 import ResetPassword from '../views/ResetPassword.vue';
 import SendAuthentication from '../views/SendAuthentication.vue'
+import LineLoginView from '../views/LineLoginView.vue';
 
 const routes = [
   {
@@ -15,6 +16,11 @@ const routes = [
     path: '/login',
     name: 'login',
     component: LoginView,
+  },
+  {
+    path: '/Line-login',
+    name: 'Line-login',
+    component: LineLoginView,
   },
   {
     path: '/register',
