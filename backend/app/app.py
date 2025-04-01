@@ -20,14 +20,13 @@ LINE_ACCESS_TOKEN = os.getenv("LINE_ACCESS_TOKEN")
 SERVER_URL = os.getenv("SERVER_URL")
 redis_host = os.getenv('REDIS_HOST')
 redis_port = int(os.getenv('REDIS_PORT'))
-redis_db = int(os.getenv('REDIS_DB'))
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 init_db(app)
-redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
+redis_client = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
 
 def trigger_email(url, recipient, subject, body_str):
     data = {
