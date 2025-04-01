@@ -114,7 +114,7 @@ def generate_reset_token(length):
 def user_key(uid):
     return f"user:{uid}"
 
-def write_through(uid):
+def update_login_cache_state(uid):
     cached_user_data = redis_client.get(user_key(uid))
     try:
         if cached_user_data:
@@ -165,7 +165,7 @@ def oauth_callback():
             user.picture_name = filename
             db.session.add(user)
 
-        write_through(user.id)
+        update_login_cache_state(user.id)
         user.last_login = datetime.now()
         user.login_count += 1
         db.session.commit()
@@ -224,7 +224,7 @@ def login():
     if not user or not user.check_password(password):
         return jsonify({"error": "帳號或密碼錯誤"}), 401
 
-    write_through(user.id)
+    update_login_cache_state(user.id)
     user.last_login = datetime.now()
     user.login_count += 1
     db.session.commit()
