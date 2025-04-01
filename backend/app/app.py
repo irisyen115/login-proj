@@ -1,6 +1,5 @@
 import os
 from flask import Flask, request, jsonify, make_response, send_from_directory, g, json
-from flask_cors import CORS
 from models import db, init_db, User, PasswordVerify, EmailVerify
 import random
 import string
@@ -22,7 +21,6 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-CORS(app, supports_credentials=True, origins=[SERVER_URL])
 init_db(app)
 
 def trigger_email(url, recipient, subject, body_str):
