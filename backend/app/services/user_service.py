@@ -1,7 +1,10 @@
 from models import User
 from database import db
 from datetime import datetime
-from app import app
+from config import Config
+import redis
+
+redis_client = redis.StrictRedis(host=Config.REDIS_HOST, port=Config.REDIS_PORT, decode_responses=True)
 
 def register_user(data):
     username = data.get("username")
@@ -44,7 +47,6 @@ def login_user(data):
     }
 
 def get_user_by_id(uid):
-    from app import redis_client
     try:
         if not uid:
             return None
@@ -61,5 +63,4 @@ def get_user_by_id(uid):
         return None
 
     except Exception as e:
-        app.logger.error(f"Error while getting user {uid}: {e}")
         return None

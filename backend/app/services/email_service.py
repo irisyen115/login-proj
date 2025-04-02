@@ -3,6 +3,7 @@ import string
 from datetime import datetime, timedelta
 from models import db, PasswordVerify, EmailVerify, User
 from sqlalchemy import desc
+import requests
 
 def generate_reset_token(length=30):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
@@ -48,3 +49,18 @@ def send_email_verification(username):
         db.session.add(new_email_verify)
         db.session.commit()
         return {"email": user.email, "message": "驗證碼已發送，請檢查電子郵件"}
+
+def trigger_email(url, recipient, subject, body_str):
+    data = {
+        "recipient": recipient,
+        "subject": subject,
+        "body": body_str
+    }
+    try:
+        response = requests.post(url, json=data)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"Failed to send email, status code: {response.status_code}"}
+    except Exception as e:
+        return {"error": str(e)}

@@ -2,13 +2,12 @@ import os
 import requests
 from dotenv import load_dotenv
 from flask import jsonify
-from utils.email_utils import trigger_email
+from services.email_service import trigger_email
+from config import Config
 
-load_dotenv()
-
-SERVER_URL = os.getenv("SERVER_URL")
-LINE_REPLY_URL = os.getenv("LINE_REPLY_URL")
-LINE_ACCESS_TOKEN = os.getenv("LINE_ACCESS_TOKEN")
+SERVER_URL = Config.SERVER_URL
+LINE_REPLY_URL = Config.LINE_REPLY_URL
+LINE_ACCESS_TOKEN = Config.LINE_ACCESS_TOKEN
 
 def reply_message(reply_token, text):
     headers = {
