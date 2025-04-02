@@ -29,9 +29,6 @@ services:
     ports:
     - "8081:80"
     - "8443:443"
-    networks:
-      - backend_net
-
   python-service:
     build:
       context: ../backend/
@@ -43,8 +40,6 @@ services:
     command: ["python", "app.py"]
     depends_on:
       - pgsql
-    networks:
-      - backend_net
   backup:
     build:
       context: ../backend/
@@ -56,8 +51,6 @@ services:
     command: ["python", "app.py"]
     depends_on:
       - pgsql
-    networks:
-      - backend_net
   mail-service:
     build:
       context: ../backend/
@@ -67,8 +60,6 @@ services:
       - ../backend/mail-server:/app
     working_dir: /app
     command: ["python", "mail_server.py"]
-    networks:
-      - backend_net
   redis:
     image: redis:5.0.5-alpine
     container_name: redis_container
@@ -86,9 +77,6 @@ services:
       - "5433:5432"
     volumes:
       - ../pg_data:/var/lib/postgresql/data
-    networks:
-      - backend_net
-
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin_container
@@ -100,7 +88,3 @@ services:
 
 volumes:
   pg_data:
-
-networks:
-  backend_net:
-    driver: bridge

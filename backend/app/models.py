@@ -3,8 +3,8 @@ from flask_bcrypt import Bcrypt
 from datetime import datetime
 import json
 from sqlalchemy import Enum
+from database import db
 
-db = SQLAlchemy()
 bcrypt = Bcrypt()
 
 class User(db.Model):
