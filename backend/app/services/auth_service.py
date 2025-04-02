@@ -45,3 +45,38 @@ def authenticate_google_user(id_token_str, client_id):
         return user, None
     except Exception as e:
         return None, str(e)
+
+def register_user(data):
+    username = data.get("username")
+    password = data.get("password")
+    email = data.get("email")
+
+    if not username or not password or not email:
+        return None, "請提供帳號、密碼和電子郵件"
+
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        return None, "帳號已存在"
+
+    new_user = User(username=username, email=email, password=password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return new_user, None
+
+def authenticate_user(data):
+    username = data.get("username")
+    password = data.get("password")
+
+    if not username or not password:
+        return None, "請提供帳號和密碼"
+
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.check_password(password):
+        return None, "帳號或密碼錯誤"
+
+    update_login_cache_state(user.id)
+    user.update_last_login()
+    db.session.commit()
+
+    return user, None

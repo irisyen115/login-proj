@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, g
 from models import User
+from services.user_service import get_user_by_id
+
 user_bp = Blueprint("user", __name__)
 
 @user_bp.route("/users", methods=["GET"])
@@ -7,7 +9,6 @@ def get_users():
     if not g.get("user_id"):
         return jsonify({"error": "未授權"}), 401
 
-    from services.user_service import get_user_by_id
     user = get_user_by_id(g.user_id)
     if not user:
         return jsonify({"error": "使用者不存在"}), 404
