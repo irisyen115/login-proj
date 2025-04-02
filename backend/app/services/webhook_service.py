@@ -1,11 +1,9 @@
-import os
 import requests
-from dotenv import load_dotenv
 from flask import jsonify
 from services.email_service import trigger_email
 from config import Config
 
-SERVER_URL = Config.SERVER_URL
+IRIS_DS_SERVER_URL = Config.IRIS_DS_SERVER_URL
 LINE_REPLY_URL = Config.LINE_REPLY_URL
 LINE_ACCESS_TOKEN = Config.LINE_ACCESS_TOKEN
 
@@ -27,7 +25,7 @@ def handle_webhook_event(body):
                 text = event["message"]["text"]
                 uid = event["source"]["userId"]
                 if "綁定" in text:
-                    login_url = f"{SERVER_URL}/Line-login?uid={uid}"
+                    login_url = f"{IRIS_DS_SERVER_URL}/Line-login?uid={uid}"
                     reply_message(event["replyToken"], f"請點擊以下網址進行綁定：\n{login_url}")
     except Exception:
         return "Internal Server Error", 500
@@ -42,7 +40,7 @@ def handle_bind_email(data):
 
         subject = "帳戶綁定確認"
         body_str = "您的 Line 已綁定此 Email！"
-        email_response = trigger_email(f"{SERVER_URL}/send-mail", email, subject, body_str)
+        email_response = trigger_email(f"{IRIS_DS_SERVER_URL}/send-mail", email, subject, body_str)
         if "error" in email_response:
             return jsonify({"error": "Email 發送失敗"}), 500
         return jsonify({"message": "綁定成功，請檢查您的 Email"}), 200

@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify, make_response
-from services.auth_service import authenticate_google_user, register_user, authenticate_user
+from flask import Blueprint, request, jsonify, make_response, g
+from services.auth_service import authenticate_google_user
 from config import Config
+from services.user_service import login_user, register_user
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -11,7 +12,7 @@ def google_callback():
     if not id_token_from_google:
         return jsonify({"error": "缺少 id_token"}), 400
 
-    user, error = authenticate_google_user(id_token_from_google, Config.CLIENT_ID)
+    user, error = authenticate_google_user(id_token_from_google)
     if error:
         return jsonify({"error": f"Google OAuth 處理失敗: {error}"}), 400
 
@@ -29,30 +30,32 @@ def google_callback():
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.json
-    user, error = register_user(data)
-    if error:
-        return jsonify({"error": error}), 400
+    register_response = register_user(data)
 
-    response = make_response(jsonify({"message": "註冊成功", "user": user.username, "role": "user"}))
-    response.set_cookie("user_id", str(user.id), httponly=True, secure=True, samesite="Strict")
+    if "error" in register_response:
+        return jsonify({"error": register_response["error"]}), 400
+
+    response = make_response(jsonify({"message": "註冊成功", "user": register_response["user"].username, "role": "user"}))
+    response.set_cookie("user_id", str(register_response["user"].id), httponly=True, secure=True, samesite="Strict")
     response.set_cookie("role", "user", httponly=True, secure=True, samesite="Strict")
     return response, 201
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.json
-    user, error = authenticate_user(data)
-    if error:
-        return jsonify({"error": error}), 401
+    login_response = login_user(data)
+
+    if "error" in login_response:
+        return jsonify({"error": login_response["error"]}), 400
 
     response = make_response(jsonify({
         "message": "登入成功",
-        "role": user.role,
-        "last_login": user.last_login.isoformat() if user.last_login else None,
-        "login_count": user.login_count
+        "role": login_response["role"],
+        "last_login": login_response["last_login"].isoformat() if login_response["last_login"] else None,
+        "login_count": login_response["login_count"]
     }))
-    response.set_cookie("user_id", str(user.id), httponly=True, secure=True, samesite="Strict")
-    response.set_cookie("role", user.role, httponly=True, secure=True, samesite="Strict")
+    response.set_cookie("user_id", str(login_response["user_id"]), httponly=True, secure=True, samesite="Strict")
+    response.set_cookie("role", login_response["role"], httponly=True, secure=True, samesite="Strict")
     return response
 
 @auth_bp.route("/logout")

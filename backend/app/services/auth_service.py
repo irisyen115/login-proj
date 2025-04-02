@@ -1,3 +1,4 @@
+import os
 import json
 import random
 import string
@@ -7,6 +8,7 @@ from google.oauth2 import id_token
 from models import db, User
 from redis import StrictRedis
 from config import Config
+import requests
 
 redis_client = StrictRedis(host=Config.REDIS_HOST, port=Config.REDIS_PORT, decode_responses=True)
 
@@ -28,55 +30,36 @@ def update_login_cache_state(uid):
     except Exception as e:
         print(e)
 
-def authenticate_google_user(id_token_str, client_id):
+def authenticate_google_user(id_token_str):
     try:
-        decoded = id_token.verify_oauth2_token(id_token_str, Request(), client_id)
+        decoded = id_token.verify_oauth2_token(id_token_str, Request(), Config.GOOGLE_CLIENT_ID)
+
         email = decoded.get('email')
+        picture = decoded.get('picture')
         if not email:
             return None, "無法取得使用者的 email"
+
         user = User.query.filter_by(email=email).first()
         if not user:
             user = User(username=decoded.get('name'), email=email)
             db.session.add(user)
-        user.last_login = datetime.utcnow()
-        user.login_count += 1
-        db.session.commit()
+
+        if picture:
+            image_data = requests.get(picture).content
+            filename = f"{user.id}.jpg"
+            filepath = os.path.join(Config.UPLOAD_FOLDER, filename)
+
+            with open(filepath, 'wb') as f:
+                f.write(image_data)
+
+            user.profile_image = filepath
+            user.picture_name = filename
+            db.session.add(user)
+
         update_login_cache_state(user.id)
+        user.update_last_login()
+        db.session.commit()
+
         return user, None
     except Exception as e:
         return None, str(e)
-
-def register_user(data):
-    username = data.get("username")
-    password = data.get("password")
-    email = data.get("email")
-
-    if not username or not password or not email:
-        return None, "請提供帳號、密碼和電子郵件"
-
-    existing_user = User.query.filter_by(email=email).first()
-    if existing_user:
-        return None, "帳號已存在"
-
-    new_user = User(username=username, email=email, password=password)
-    db.session.add(new_user)
-    db.session.commit()
-
-    return new_user, None
-
-def authenticate_user(data):
-    username = data.get("username")
-    password = data.get("password")
-
-    if not username or not password:
-        return None, "請提供帳號和密碼"
-
-    user = User.query.filter_by(username=username).first()
-    if not user or not user.check_password(password):
-        return None, "帳號或密碼錯誤"
-
-    update_login_cache_state(user.id)
-    user.update_last_login()
-    db.session.commit()
-
-    return user, None
