@@ -1,5 +1,6 @@
 import os
-from models import db, User
+from models.database import db
+from models.users import User
 from config import Config
 
 def save_user_avatar(user_id, file_storage):

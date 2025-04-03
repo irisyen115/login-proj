@@ -1,9 +1,8 @@
-from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from datetime import datetime
+from models.database import db
 import json
 from sqlalchemy import Enum
-from database import db
 
 bcrypt = Bcrypt()
 
@@ -64,6 +63,7 @@ class User(db.Model):
         u.picture_name = data_dict.get('picture_name')
         u.password_hash = data_dict.get('password_hash')
         return u
+<<<<<<< HEAD:backend/app/models.py
 
 class PasswordVerify(db.Model):
     __tablename__ = "password_verification"
@@ -91,3 +91,5 @@ def init_db(app):
     db.init_app(app)
     with app.app_context():
         db.create_all()
+=======
+>>>>>>> b997ff11 (Split the table in the model program #95):backend/app/models/users.py

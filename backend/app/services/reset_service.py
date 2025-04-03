@@ -1,6 +1,6 @@
 from datetime import datetime
-from database import db
-from models import PasswordVerify
+from models.database import db
+from models.password_verification import PasswordVerify
 
 def reset_user_password(password_verify_code, new_password):
     try:

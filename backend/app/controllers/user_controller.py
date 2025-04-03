@@ -5,7 +5,7 @@ user_bp = Blueprint("user", __name__)
 
 @user_bp.route("/users", methods=["GET"])
 def get_users():
-    if not g.get("user_id"):
+    if not g.user_id:
         return jsonify({"error": "未授權"}), 401
 
     user = fetch_users_data(g.user_id)

@@ -5,7 +5,8 @@ import string
 from datetime import datetime
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
-from models import db, User
+from models.database import db
+from models.users import User
 from redis import StrictRedis
 from config import Config
 import requests
