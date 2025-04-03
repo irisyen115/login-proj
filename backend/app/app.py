@@ -11,6 +11,8 @@ from controllers.reset_controller import reset_bp
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = Config.SQLALCHEMY_TRACK_MODIFICATIONS
 
 init_db(app)
 
