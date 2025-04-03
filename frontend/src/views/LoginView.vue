@@ -125,6 +125,13 @@ const handleCredentialResponse = (response) => {
   }
 };
 
+const goToSendAuthentication = () =>{
+  router.push('/sendAuthentication')
+}
+
+const goToRegister = () =>{
+  router.push('/register')
+}
 </script>
 
 <style scoped>

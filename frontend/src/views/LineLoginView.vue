@@ -1,51 +1,125 @@
 <template>
   <div class="login-container">
     <div class="login-card">
-    <h2>綁定帳戶</h2>
-    <form @submit.prevent="bindEmail">
-      <input v-model="email" type="email" placeholder="請輸入 Email" required />
-      <button type="submit" class="btn login-btn">綁定</button>
-    </form>
-    <p v-if="message" class="success">{{ message }}</p>
-    <p v-if="error" class="error">{{ error }}</p>
+      <h2>登入</h2>
+      <form @submit.prevent="bindEmail">
+        <input v-model="username" placeholder="帳號" required />
+        <input v-model="password" type="password" placeholder="密碼" required />
+        <button type="submit" class="btn login-btn">登入</button>
+      </form>
+      <div id="google-signin-button"></div>
+      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+      <p>忘記密碼？<a @click.prevent="goToSendAuthentication" style="cursor: pointer; color: blue;">點此重設</a></p>
+      <p>尚未註冊？<a @click.prevent="goToRegister" style="cursor: pointer; color: blue;">點此註冊</a></p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, nextTick, onMounted } from "vue";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
 const uid = ref("");
-const email = ref("");
-const message = ref("");
-const error = ref("");
+const username = ref("");
+const password = ref("");
+const errorMessage = ref("");
 
 onMounted(() => {
   const params = new URLSearchParams(window.location.search);
   uid.value = params.get("uid") || "";
 });
 
-const bindEmail = async () => {
-  error.value = "";
-  message.value = "";
-
+const bindEmail = async (googleToken = null) => {
+  errorMessage.value = "";
   try {
+    console.log("發送登入請求");
+
+    let bodyData = { uid: uid.value, username: username.value, password: password.value };
+
+    if (googleToken && typeof googleToken === "string") {
+      bodyData = { google_token: googleToken, uid: uid.value };
+    }
+
     const response = await fetch("/api/bind-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uid: uid.value, email: email.value })
+      body: JSON.stringify(bodyData),
+      mode: "cors",
+      credentials: "include"
     });
 
+    console.log("API 回應狀態碼:", response.status);
     const data = await response.json();
+
     if (response.ok) {
-      message.value = "綁定成功！請檢查您的 Email";
+      localStorage.setItem("token", data.token);
+      sessionStorage.setItem('role', data.role);
+      sessionStorage.setItem("username", data.username);
+      sessionStorage.setItem("lastLogin", data.last_login);
+
+      console.log("登入成功，準備跳轉到 /dashboard");
+      await router.push("/dashboard");
+      console.log("已跳轉到 /dashboard");
     } else {
-      error.value = data.error || "綁定失敗";
+      errorMessage.value = data.error || "登入失敗";
     }
-  } catch {
-    error.value = "伺服器錯誤，請稍後再試";
+  } catch (error) {
+    errorMessage.value = "伺服器錯誤，請稍後再試";
   }
 };
+
+const initializeGoogleSignIn = () => {
+  if (!window.google || !google.accounts) {
+    console.error("Google Sign-In API 未載入，將稍後重試...");
+    setTimeout(initializeGoogleSignIn, 1000);
+    return;
+  }
+
+  google.accounts.id.initialize({
+    client_id: "825100576956-ia8d4ulk2dapck8f3h5jmr10p14uf54q.apps.googleusercontent.com",
+    callback: handleCredentialResponse,
+  });
+
+  nextTick(() => {
+    const button = document.getElementById("google-signin-button");
+    if (button) {
+      google.accounts.id.renderButton(button, { theme: "outline", size: "large" });
+    } else {
+      console.error("找不到 Google Sign-In 按鈕");
+    }
+  });
+};
+
+const handleCredentialResponse = (response) => {
+  try {
+    if (!response || !response.credential) {
+      console.error("Google 登入失敗: 無效的 credential");
+      return;
+    }
+
+    const idToken = response.credential;
+    console.log("收到的 Google id_token:", idToken);
+
+    bindEmail(idToken);
+  } catch (error) {
+    console.error("處理 Google 登入回應時發生錯誤:", error);
+  }
+};
+
+onMounted(() => {
+  console.log("onMounted 執行，開始初始化 Google Sign-In");
+  initializeGoogleSignIn();
+});
+
+const goToSendAuthentication = () =>{
+  router.push('/sendAuthentication')
+}
+
+const goToRegister = () =>{
+  router.push('/register')
+}
+
 </script>
 
 <style scoped>

@@ -23,7 +23,8 @@ class User(db.Model):
     email = db.Column(db.String(254), nullable=True)
 
     password_verification = db.relationship('PasswordVerify', back_populates='user', cascade="all, delete-orphan")
-    email_verifications = db.relationship('EmailVerify', back_populates='user', cascade="all, delete-orphan")
+    email_verification = db.relationship('EmailVerify', back_populates='user', cascade="all, delete-orphan")
+    line_binding_user = db.relationship('LineBindingUser', back_populates='user', cascade="all, delete-orphan")
 
     def __init__(self, username, email, password=None):
         self.username = username
@@ -85,7 +86,16 @@ class EmailVerify(db.Model):
     email_verify_code = db.Column(db.String(50), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
 
-    user = db.relationship('User', back_populates='email_verifications')
+    user = db.relationship('User', back_populates='email_verification')
+
+class LineBindingUser(db.Model):
+    __tablename__ = "line_binding_user"
+
+    line_id = db.Column(db.String(120), primary_key=True, unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    user = db.relationship('User', back_populates='line_binding_user')
 
 def init_db(app):
     db.init_app(app)
