@@ -2,8 +2,9 @@ import requests
 from flask import jsonify, make_response
 from services.email_service import trigger_email
 from config import Config
-from database import db
-from models import User, LineBindingUser
+from models.database import db
+from models.users import User
+from models.line_binding_user import LineBindingUser
 import logging
 from google.oauth2 import id_token
 from google.auth.transport import requests

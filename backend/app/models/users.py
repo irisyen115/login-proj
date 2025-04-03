@@ -1,9 +1,8 @@
-from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from datetime import datetime
+from models.database import db
 import json
 from sqlalchemy import Enum
-from database import db
 
 bcrypt = Bcrypt()
 
@@ -65,39 +64,3 @@ class User(db.Model):
         u.picture_name = data_dict.get('picture_name')
         u.password_hash = data_dict.get('password_hash')
         return u
-
-class PasswordVerify(db.Model):
-    __tablename__ = "password_verification"
-
-    id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    valid_until = db.Column(db.DateTime, nullable=False)
-    password_verify_code = db.Column(db.String(50), nullable=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
-
-    user = db.relationship('User', back_populates='password_verification')
-
-class EmailVerify(db.Model):
-    __tablename__ = "email_verification"
-
-    id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    valid_until = db.Column(db.DateTime, nullable=False)
-    email_verify_code = db.Column(db.String(50), nullable=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
-
-    user = db.relationship('User', back_populates='email_verification')
-
-class LineBindingUser(db.Model):
-    __tablename__ = "line_binding_user"
-
-    line_id = db.Column(db.String(120), primary_key=True, unique=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-
-    user = db.relationship('User', back_populates='line_binding_user')
-
-def init_db(app):
-    db.init_app(app)
-    with app.app_context():
-        db.create_all()
