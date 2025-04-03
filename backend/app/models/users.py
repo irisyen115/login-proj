@@ -64,3 +64,36 @@ class User(db.Model):
         u.picture_name = data_dict.get('picture_name')
         u.password_hash = data_dict.get('password_hash')
         return u
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD:backend/app/models.py
+
+class PasswordVerify(db.Model):
+    __tablename__ = "password_verification"
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    valid_until = db.Column(db.DateTime, nullable=False)
+    password_verify_code = db.Column(db.String(50), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+
+    user = db.relationship('User', back_populates='password_verification')
+
+class EmailVerify(db.Model):
+    __tablename__ = "email_verification"
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    valid_until = db.Column(db.DateTime, nullable=False)
+    email_verify_code = db.Column(db.String(50), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+
+    user = db.relationship('User', back_populates='email_verifications')
+
+def init_db(app):
+    db.init_app(app)
+    with app.app_context():
+        db.create_all()
+=======
+>>>>>>> b997ff11 (Split the table in the model program #95):backend/app/models/users.py
+>>>>>>> bfa5e8bf (Split the table in the model program #95)
