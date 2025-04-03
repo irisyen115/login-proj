@@ -8,6 +8,7 @@ from controllers.user_controller import user_bp
 from controllers.file_controller import file_bp
 from controllers.email_controller import email_bp
 from controllers.reset_controller import reset_bp
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config.from_object(Config)

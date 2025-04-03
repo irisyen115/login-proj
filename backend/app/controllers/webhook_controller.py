@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.webhook_service import handle_webhook_event, handle_bind_email
+from services.webhook_service import handle_webhook_event, bind_email_service
 
 webhook_bp = Blueprint("webhook", __name__)
 
@@ -9,4 +9,11 @@ def webhook():
 
 @webhook_bp.route("/bind-email", methods=["POST"])
 def bind_email():
-    return handle_bind_email(request.json)
+    try:
+        data = request.json
+        response = bind_email_service(data)
+
+        return response
+    except Exception as e:
+        return jsonify({"error": f"伺服器錯誤: {str(e)}"}), 500
+
