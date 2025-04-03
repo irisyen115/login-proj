@@ -12,6 +12,8 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = Config.SQLALCHEMY_TRACK_MODIFICATIONS
 
 CORS(app, supports_credentials=True, origins=[Config.IRIS_DS_SERVER_URL])
 init_db(app)
