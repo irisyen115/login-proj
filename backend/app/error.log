@@ -1,0 +1,20 @@
+2025-04-04 09:53:30,199 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.28.0.8:5000
+2025-04-04 09:53:30,199 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-04 09:53:30,200 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.28.0.7:5000
+2025-04-04 09:53:30,201 - INFO - [33mPress CTRL+C to quit[0m
+2025-04-04 09:53:31,529 - INFO - 172.28.0.9 - - [04/Apr/2025 09:53:31] "POST /login HTTP/1.0" 200 -
+2025-04-04 09:53:31,598 - ERROR - [{'id': 3, 'username': 'bbb', 'password_hash': '$2b$12$kxRGIJZ8yiVe/WoHZfM2jeMJUv6wkqDiwGP8AjDM/5sxsj8fdF25q', 'role': 'user', 'created_at': '2025-02-25T08:02:32.220806', 'updated_at': '2025-04-03T13:09:28.467887', 'last_login': datetime.datetime(2025, 4, 4, 9, 53, 31, 512674), 'login_count': 165, 'profile_image': '/app/uploads/3.jpg', 'picture_name': '3.jpg', 'email': None}]
+2025-04-04 09:53:31,600 - INFO - 172.28.0.9 - - [04/Apr/2025 09:53:31] "GET /users HTTP/1.0" 200 -
+2025-04-04 09:53:31,615 - INFO - 172.28.0.9 - - [04/Apr/2025 09:53:31] "[36mGET /get_user_image HTTP/1.0[0m" 304 -
+2025-04-04 09:53:42,787 - ERROR - [{'id': 3, 'username': 'bbb', 'password_hash': '$2b$12$kxRGIJZ8yiVe/WoHZfM2jeMJUv6wkqDiwGP8AjDM/5sxsj8fdF25q', 'role': 'user', 'created_at': '2025-02-25T08:02:32.220806', 'updated_at': '2025-04-03T13:09:28.467887', 'last_login': datetime.datetime(2025, 4, 4, 9, 53, 31, 512674), 'login_count': 165, 'profile_image': '/app/uploads/3.jpg', 'picture_name': '3.jpg', 'email': None}]
+2025-04-04 09:53:42,788 - INFO - 172.28.0.9 - - [04/Apr/2025 09:53:42] "GET /users HTTP/1.0" 200 -
+2025-04-04 09:53:42,804 - INFO - 172.28.0.9 - - [04/Apr/2025 09:53:42] "[36mGET /get_user_image HTTP/1.0[0m" 304 -
+2025-04-04 09:53:43,640 - ERROR - [{'id': 3, 'username': 'bbb', 'password_hash': '$2b$12$kxRGIJZ8yiVe/WoHZfM2jeMJUv6wkqDiwGP8AjDM/5sxsj8fdF25q', 'role': 'user', 'created_at': '2025-02-25T08:02:32.220806', 'updated_at': '2025-04-03T13:09:28.467887', 'last_login': datetime.datetime(2025, 4, 4, 9, 53, 31, 512674), 'login_count': 165, 'profile_image': '/app/uploads/3.jpg', 'picture_name': '3.jpg', 'email': None}]
+2025-04-04 09:53:43,642 - INFO - 172.28.0.9 - - [04/Apr/2025 09:53:43] "[36mGET /get_user_image HTTP/1.0[0m" 304 -
+2025-04-04 09:53:43,643 - INFO - 172.28.0.9 - - [04/Apr/2025 09:53:43] "GET /users HTTP/1.0" 200 -
