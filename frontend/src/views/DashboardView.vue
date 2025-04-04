@@ -70,16 +70,7 @@ const formatDateTime = (dateString) => {
   if (!dateString) return "無登入記錄";
 
   const date = new Date(dateString);
-  return new Intl.DateTimeFormat('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZoneName: 'short'
-  }).format(date);
+  return date.toLocaleString();
 };
 
 const handleFileChange = (event) => {
@@ -123,20 +114,19 @@ const fetchUserData = async () => {
   }
 
   username.value = sessionStorage.getItem('username');
-  const storedLoginTime = sessionStorage.getItem('lastLogin');
-  const storedLoginCount = sessionStorage.getItem('loginCount');
-  role.value = sessionStorage.getItem('role') || 'user';
-  lastLogin.value = formatDateTime(storedLoginTime);
-  loginCount.value = storedLoginCount ? parseInt(storedLoginCount, 10) : 0;
+  console.log(formatDateTime("2025-04-04T06:30:00Z"));
 
   try {
     const response = await axios.get('/api/users', {
       withCredentials: true
     });
     users.value = response.data;
+    const loginTime = "2025-04-04T08:19:39.702887";
+    console.log(formatDateTime(loginTime));
 
     for (let i = 0; i < users.value.length; i++) {
-      users.value[i].last_login = users.value[i].last_login ? new Date(users.value[i].last_login).toLocaleString() : "無登入記錄";
+      const loginTime = users.value[i].last_login;
+      users.value[i].last_login = formatDateTime(loginTime);
       users.value[i].login_count = users.value[i].login_count ? parseInt(users.value[i].login_count, 10) : 0;
     }
 
