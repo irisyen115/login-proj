@@ -30,21 +30,45 @@ onMounted(() => {
   uid.value = params.get("uid") || "";
 });
 
-const bindEmail = async (googleToken = null) => {
+const bindGoogleEmail = async (googleToken) => {
+  try {
+    const response = await fetch("/api/bind-google-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ google_token: googleToken, uid: uid.value }),
+        mode: "cors",
+        credentials: "include"
+      });
+
+      console.log("API 回應狀態碼:", response.status);
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("token", data.token);
+        sessionStorage.setItem('role', data.role);
+        sessionStorage.setItem("username", data.username);
+        sessionStorage.setItem("lastLogin", data.last_login);
+
+        console.log("登入成功，準備跳轉到 /dashboard");
+        await router.push("/dashboard");
+        console.log("已跳轉到 /dashboard");
+      } else {
+        errorMessage.value = data.error || "登入失敗";
+      }
+  } catch (error) {
+    errorMessage.value = "伺服器錯誤，請稍後再試";
+  }
+}
+
+const bindEmail = async () => {
   errorMessage.value = "";
   try {
     console.log("發送登入請求");
 
-    let bodyData = { uid: uid.value, username: username.value, password: password.value };
-
-    if (googleToken && typeof googleToken === "string") {
-      bodyData = { google_token: googleToken, uid: uid.value };
-    }
-
     const response = await fetch("/api/bind-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(bodyData),
+      body: JSON.stringify({ uid: uid.value, username: username.value, password: password.value }),
       mode: "cors",
       credentials: "include"
     });
@@ -101,7 +125,7 @@ const handleCredentialResponse = (response) => {
     const idToken = response.credential;
     console.log("收到的 Google id_token:", idToken);
 
-    bindEmail(idToken);
+    bindGoogleEmail(idToken);
   } catch (error) {
     console.error("處理 Google 登入回應時發生錯誤:", error);
   }
