@@ -1,17 +1,19 @@
 import os
 from flask import Flask, g, request
 from config import Config
-from database import db, init_db
+from models.database import db, init_db
 from controllers.auth_controller import auth_bp
 from controllers.webhook_controller import webhook_bp
 from controllers.user_controller import user_bp
 from controllers.file_controller import file_bp
 from controllers.email_controller import email_bp
 from controllers.reset_controller import reset_bp
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
+CORS(app, supports_credentials=True, origins=[Config.IRIS_DS_SERVER_URL])
 init_db(app)
 
 if not os.path.exists(app.config["UPLOAD_FOLDER"]):

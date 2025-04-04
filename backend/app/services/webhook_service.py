@@ -1,7 +1,11 @@
 import requests
-from flask import jsonify
+from flask import jsonify, make_response
 from services.email_service import trigger_email
 from config import Config
+import logging
+from google.auth.transport import requests
+
+logging.basicConfig(filename="error.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
 IRIS_DS_SERVER_URL = Config.IRIS_DS_SERVER_URL
 LINE_REPLY_URL = Config.LINE_REPLY_URL
@@ -18,6 +22,7 @@ def reply_message(reply_token, text):
     }
     requests.post(LINE_REPLY_URL, json=payload, headers=headers)
 
+
 def handle_webhook_event(body):
     try:
         for event in body.get("events", []):
@@ -30,19 +35,3 @@ def handle_webhook_event(body):
     except Exception:
         return "Internal Server Error", 500
     return "OK", 200
-
-def handle_bind_email(data):
-    try:
-        uid = data.get("uid")
-        email = data.get("email")
-        if not uid or not email:
-            return jsonify({"error": "缺少 UID 或 Email"}), 400
-
-        subject = "帳戶綁定確認"
-        body_str = "您的 Line 已綁定此 Email！"
-        email_response = trigger_email(f"{IRIS_DS_SERVER_URL}/send-mail", email, subject, body_str)
-        if "error" in email_response:
-            return jsonify({"error": "Email 發送失敗"}), 500
-        return jsonify({"message": "綁定成功，請檢查您的 Email"}), 200
-    except Exception:
-        return jsonify({"error": "伺服器錯誤"}), 500

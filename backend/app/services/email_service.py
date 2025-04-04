@@ -1,7 +1,10 @@
 import random
 import string
 from datetime import datetime, timedelta
-from models import db, PasswordVerify, EmailVerify, User
+from models.database import db
+from models.password_verification import PasswordVerify
+from models.email_verification import EmailVerify
+from models.users import User
 from sqlalchemy import desc
 import requests
 
