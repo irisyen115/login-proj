@@ -2,13 +2,10 @@ import requests
 from flask import jsonify, make_response
 from services.email_service import trigger_email
 from config import Config
-import logging
 
 IRIS_DS_SERVER_URL = Config.IRIS_DS_SERVER_URL
 LINE_REPLY_URL = Config.LINE_REPLY_URL
 LINE_ACCESS_TOKEN = Config.LINE_ACCESS_TOKEN
-
-logging.basicConfig(filename="error.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def reply_message(reply_token, text):
     headers = {
