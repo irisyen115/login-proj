@@ -27,7 +27,14 @@ def send_authentication_email(username):
         )
         db.session.add(new_password_verify)
         db.session.commit()
-        return {"message": "驗證信已發送，請重新設置"}
+
+    subject = "帳戶綁定確認"
+    body_str = f'{IRIS_DS_SERVER_URL}/reset-password/{new_password_verify.password_verify_code}'
+    email_response = trigger_email(f"{IRIS_DS_SERVER_URL}/send-mail", user.email, subject, body_str)
+
+    if "error" in email_response:
+        return {"error": "Email 發送失敗"}
+    return {"message": "驗證信已發送，請重新設置"}
 
 def send_email_verification(username):
     user = User.query.filter_by(username=username).first()
