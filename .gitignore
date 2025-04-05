@@ -6,9 +6,5 @@
 *.env*
 *uploads*
 *venv*
-<<<<<<< HEAD
 *.history*
 *error.log*
-=======
-*error.log*
->>>>>>> 5712c2bb (Modify Line-login to make it the same as login #87)
