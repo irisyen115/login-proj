@@ -94,3 +94,25 @@ def send_email_code(username, code):
     if datetime.utcnow() > email_verify.valid_until:
         return {"error": "驗證碼已過期"}
     return {"message": "驗證成功，Email 已驗證"}
+
+def send_rebind_request_email(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return {"message": "找不到使用者"}, 404
+
+    email_subject = "【重新綁定 Email 請求】"
+    email_body = f"""
+有使用者申請重新綁定 Email。
+
+使用者帳號：{user.username}
+原本 Email：{user.email}
+
+請客服人員儘速手動處理此請求。
+    """
+    trigger_email(
+        f"{Config.IRIS_DS_SERVER_URL}/send-mail",
+        "irisyen115@gmail.cpm",
+        email_subject,
+        email_body
+    )
+    return {"message": "申請已送出，客服將會協助您重新綁定 Email"}
