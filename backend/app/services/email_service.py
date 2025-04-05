@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 from models import db, PasswordVerify, EmailVerify, User
 from sqlalchemy import desc
 import requests
+from config import Config
+
+IRIS_DS_SERVER_URL = Config.IRIS_DS_SERVER_URL
 
 def generate_reset_token(length=30):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
@@ -32,12 +35,13 @@ def send_authentication_email(username):
 def send_email_verification(username):
     user = User.query.filter_by(username=username).first()
     if not user:
-        return {"message": "用戶不存在"}
+        return {"error": "用戶不存在"}
     if not user.email:
-        return {"message": "用戶未綁定 Email，若需綁定請洽系統服務"}
+        return {"error": "用戶未綁定 Email，若需綁定請洽系統服務"}
 
     email_verify = EmailVerify.query.filter_by(user_id=user.id).order_by(desc(EmailVerify.valid_until)).first()
     current_time = datetime.utcnow()
+
     if email_verify and current_time <= email_verify.valid_until:
         return {"message": "驗證碼已發送，請勿重複點取"}
     else:
@@ -48,7 +52,14 @@ def send_email_verification(username):
         )
         db.session.add(new_email_verify)
         db.session.commit()
-        return {"email": user.email, "message": "驗證碼已發送，請檢查電子郵件"}
+
+    subject = "帳戶綁定確認"
+    body_str = f'{new_email_verify.email_verify_code}'
+    email_response = trigger_email(f"{IRIS_DS_SERVER_URL}/send-mail", user.email, subject, body_str)
+
+    if "error" in email_response:
+        return {"error": "Email 發送失敗"}
+    return {"message": "驗證碼已發送，請檢查電子郵件"}
 
 def trigger_email(url, recipient, subject, body_str):
     data = {
@@ -64,3 +75,12 @@ def trigger_email(url, recipient, subject, body_str):
             return {"error": f"Failed to send email, status code: {response.status_code}"}
     except Exception as e:
         return {"error": str(e)}
+
+def send_email_code(username, code):
+    user = User.query.filter_by(username=username).first()
+    email_verify = EmailVerify.query.filter_by(user_id=user.id).order_by(desc(EmailVerify.valid_until)).first()
+    if code != email_verify.email_verify_code:
+        return {"error": "驗證碼錯誤"}
+    if datetime.utcnow() > email_verify.valid_until:
+        return {"error": "驗證碼已過期"}
+    return {"message": "驗證成功，Email 已驗證"}

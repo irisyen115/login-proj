@@ -10,6 +10,12 @@
       <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
     </div>
     <p>不須重設？<a @click.prevent="goToLogin" style="cursor: pointer; color: blue;">點此登入</a></p>
+    <div v-if="showVerification" class="verification-container">
+      <h3>請輸入發送到您的 Email 的驗證碼</h3>
+      <input v-model="verificationCode" placeholder="驗證碼" required />
+      <button @click="verifyCode" class="btn send-btn">驗證碼確認</button>
+      <p v-if="verificationError" class="error">{{ verificationError }}</p>
+    </div>
   </div>
 </template>
 
@@ -20,7 +26,10 @@ import { useRouter } from "vue-router";
 const router = useRouter();
 const username = ref("");
 const errorMessage = ref("");
-let emailVerify;
+const emailVerify = ref(false);
+const verificationCode = ref("");
+const showVerification = ref(false);
+const verificationError = ref("");
 
 const verifyEmail = async () => {
   try {
@@ -34,9 +43,10 @@ const verifyEmail = async () => {
     const data = await response.json();
 
     if (response.ok) {
-      emailVerify = confirm("Email 確認成功，允許發送重設頁面");
+      confirm(data.message);
+      showVerification.value = true;
     } else {
-      alert(data.message);
+      alert(data.error)
     }
 
   } catch (error) {
@@ -44,11 +54,34 @@ const verifyEmail = async () => {
   }
 };
 
+const verifyCode = async () => {
+  try {
+    const response = await fetch("/api/verify-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: username.value, verificationCode: verificationCode.value }),
+      mode: "cors",
+      credentials: "include"
+    });
+    const data = await response.json();
+
+    if (response.ok) {
+      emailVerify.value = true;
+      showVerification.value = false;
+      confirm(data.message);
+    } else {
+      verificationError.value = data.message;
+    }
+  } catch (error) {
+    verificationError.value = "驗證碼驗證失敗，請稍後再試";
+  }
+};
+
 const send = async () => {
   console.log("發送按鈕已點擊");
   console.log(emailVerify)
 
-  if (!emailVerify) {
+  if (emailVerify.value == false) {
     errorMessage.value = "請先驗證綁定的 Email 再發送重設頁面"
     alert("請先驗證綁定的 Email 再發送重設頁面");
     return;
@@ -156,5 +189,16 @@ input:focus {
   color: #ff006f;
   font-weight: bold;
   font-size: medium;
+}
+
+.verification-container {
+  background-color: wheat;
+  padding: 2rem;
+  text-align: center;
+  flex-direction: column;
+  border-radius: 12px;
+  box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1);
+  width: 320px;
+  margin-top: 20px;
 }
 </style>
