@@ -6,6 +6,7 @@
         <input v-model="username" placeholder="帳號" required />
         <button type="submit" class="btn send-btn" >發送重設頁面</button>
       </form>
+      <button @click="sendBindEmail" class="btn request-email-btn">重新綁定 Email</button>
       <button @click="verifyEmail" class="btn Verify-Email-btn">驗證綁定 Email</button>
       <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
     </div>
@@ -21,6 +22,28 @@ const router = useRouter();
 const username = ref("");
 const errorMessage = ref("");
 let emailVerify;
+
+const sendBindEmail = async () => {
+  try {
+    const response = await fetch("/api/request-bind-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: username.value }),
+      mode: "cors",
+      credentials: "include"
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert("重新綁定 Email 的信件已寄出，請至信箱確認");
+    } else {
+      alert(data.message || "寄送失敗");
+    }
+  } catch (error) {
+    alert("發送請求失敗，請稍後再試");
+  }
+};
 
 const verifyEmail = async () => {
   try {
