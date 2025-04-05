@@ -1,5 +1,5 @@
-from models import User
-from database import db
+from models.users import User
+from models.database import db
 from config import Config
 import redis
 from services.auth_service import update_login_cache_state
