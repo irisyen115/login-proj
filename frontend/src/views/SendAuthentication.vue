@@ -93,7 +93,7 @@ const verifyCode = async () => {
       showVerification.value = false;
       confirm(data.message);
     } else {
-      verificationError.value = data.message;
+      alert(data.error);
     }
   } catch (error) {
     verificationError.value = "驗證碼驗證失敗，請稍後再試";
