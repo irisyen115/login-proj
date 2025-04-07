@@ -105,7 +105,7 @@ def bind_line_uid_to_user_email(line_uid, user):
         logging.error(f"發生錯誤: {str(e)}", exc_info=True)
         return jsonify({"error": f"伺服器錯誤: {str(e)}"}), 500
 
-def identify_user(user_data):
+def identify_google_user_by_token(user_data):
     google_token = user_data.get("google_token")
     username = user_data.get("username")
     password = user_data.get("password", "")
