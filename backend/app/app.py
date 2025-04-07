@@ -1,7 +1,7 @@
 import os
 from flask import Flask, g, request
 from config import Config
-from database import db, init_db
+from models.database import db, init_db
 from controllers.auth_controller import auth_bp
 from controllers.webhook_controller import webhook_bp
 from controllers.user_controller import user_bp
@@ -11,7 +11,6 @@ from controllers.reset_controller import reset_bp
 
 app = Flask(__name__)
 app.config.from_object(Config)
-
 init_db(app)
 
 if not os.path.exists(app.config["UPLOAD_FOLDER"]):
