@@ -26,12 +26,15 @@ def verify_email():
 @email_bp.route("/verify-code", methods=["POST"])
 def verify_code():
     data = request.json
+    if not data:
+        return jsonify({"error": "未收到請求資料"}), 400
+
     username = data.get("username")
     verification_code = data.get("verificationCode")
     if not username:
-        return jsonify({"message": "請輸入用戶名"}), 404
+        return jsonify({"error": "請輸入用戶名"}), 404
     if not verification_code:
-        return jsonify({"message": "請輸入信箱驗證碼"}), 404
+        return jsonify({"error": "請輸入信箱驗證碼"}), 404
     result = send_email_code(username, verification_code)
     if "error" in result:
         return jsonify(result), 400
