@@ -53,7 +53,7 @@ const bindGoogleEmail = async (googleToken) => {
         await router.push("/dashboard");
         console.log("已跳轉到 /dashboard");
       } else {
-        errorMessage.value = data.error || "登入失敗";
+        errorMessage.value = data.error;
       }
   } catch (error) {
     errorMessage.value = "伺服器錯誤，請稍後再試";
@@ -86,7 +86,7 @@ const bindEmail = async () => {
       await router.push("/dashboard");
       console.log("已跳轉到 /dashboard");
     } else {
-      errorMessage.value = data.error || "登入失敗";
+      errorMessage.value = data.error;
     }
   } catch (error) {
     errorMessage.value = "伺服器錯誤，請稍後再試";

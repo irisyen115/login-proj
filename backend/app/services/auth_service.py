@@ -69,37 +69,16 @@ def authenticate_google_user(id_token_str):
     except Exception as e:
         return None, str(e)
 
-def bind_email_service(data):
+def bind_line_uid_to_user_email(line_uid, user):
     try:
-        google_token = data.get("google_token")
-        uid = data.get("uid")
-        username = data.get("username")
-        password = data.get("password", "")
-
-        if google_token:
-            google_user_info = verify_google_token(google_token)
-            if not google_user_info:
-                return jsonify({"error": "Google 驗證失敗"}), 400
-
-            email = google_user_info.get("email")
-            user = User.query.filter_by(email=email).first()
-        else:
-            user = User.query.filter_by(username=username).first()
-
-            if not user.check_password(password):
-                return jsonify({"error": "密碼錯誤"}), 400
-
         if not user:
             return jsonify({"error": "帳號不存在"}), 400
 
         binding = LineBindingUser.query.filter_by(user_id=user.id).first()
         if not binding:
-            binding = LineBindingUser(user_id=user.id, line_id=uid)
-            db.session.add(binding)
+            binding = LineBindingUser(user_id=user.id, line_id=line_uid)
         else:
-            binding.line_id = uid
-
-        db.session.commit()
+            return jsonify({"error":f"已綁定{user.email}信箱"}), 400
 
         subject = "帳戶綁定確認"
         body_str = "您的 Line 已綁定此 Email！"
@@ -126,6 +105,24 @@ def bind_email_service(data):
         logging.error(f"發生錯誤: {str(e)}", exc_info=True)
         return jsonify({"error": f"伺服器錯誤: {str(e)}"}), 500
 
+def identify_user(user_data):
+    google_token = user_data.get("google_token")
+    username = user_data.get("username")
+    password = user_data.get("password", "")
+
+    if google_token:
+        google_user_info = verify_google_token(google_token)
+        if not google_user_info:
+            return jsonify({"error": "Google 驗證失敗"}), 400
+
+        email = google_user_info.get("email")
+        user = User.query.filter_by(email=email).first()
+    else:
+        user = User.query.filter_by(username=username).first()
+
+        if not user.check_password(password):
+            return jsonify({"error": "密碼錯誤"}), 400
+    return user
 
 def verify_google_token(google_token):
     try:

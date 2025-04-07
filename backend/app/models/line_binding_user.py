@@ -9,3 +9,7 @@ class LineBindingUser(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     user = db.relationship('User', back_populates='line_binding_user')
+
+    def __init__(self, user_id, line_id):
+        self.user_id = user_id
+        self.line_id = line_id
