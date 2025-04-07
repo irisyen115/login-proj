@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from services.webhook_service import handle_webhook_event
-from services.auth_service import bind_line_uid_to_user_email, identify_user
+from services.auth_service import bind_line_uid_to_user_email, identify_google_user_by_token
 
 webhook_bp = Blueprint("webhook", __name__)
 
@@ -18,7 +18,7 @@ def bind_google_email():
             if key not in data:
                 return jsonify({"error": f"缺少必要的資料({key})"}), 400
         line_uid = data.get("uid")
-        user = identify_user(data)
+        user = identify_google_user_by_token(data)
 
         return bind_line_uid_to_user_email(line_uid, user)
     except Exception as e:
@@ -34,7 +34,7 @@ def bind_email():
             if key not in data:
                 return jsonify({"error": f"缺少必要的資料({key})"}), 400
         line_uid = data.get("uid")
-        user = identify_user(data)
+        user = identify_google_user_by_token(data)
 
         return bind_line_uid_to_user_email(line_uid, user)
     except Exception as e:
