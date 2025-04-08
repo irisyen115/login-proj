@@ -8,3 +8,4 @@
 *venv*
 *.history*
 *error.log*
+!.env.example
