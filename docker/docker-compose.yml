@@ -66,6 +66,17 @@ services:
     container_name: redis_container
     ports:
       - "6379:6379"
+  golang-service:
+    build:
+      context: ../backend/golang-app
+      dockerfile: Dockerfile
+    container_name: golang-container
+    volumes:
+      - ../backend/golang-app:/golang-app
+    working_dir: /golang-app
+    command: ["go", "run", "main.go"]
+    depends_on:
+      - pgsql
 
   pgsql:
     image: postgres
