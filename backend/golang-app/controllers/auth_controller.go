@@ -14,8 +14,6 @@ func RegisterAuthRoutes(r *gin.Engine) {
 	auth := r.Group("/auth")
 	{
 		auth.POST("/google/callback", GoogleCallback)
-		auth.POST("/register", Register)
-		auth.POST("/login", Login)
 	}
 	r.POST("/login", Login)
 	r.POST("/register", Register)

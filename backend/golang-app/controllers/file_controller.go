@@ -20,7 +20,6 @@ func RegisterFileRoutes(r *gin.Engine) {
 
 func UploadAvatar(c *gin.Context) {
 	userID, exists := c.Get("user_id")
-
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "未授權"})
 		return
