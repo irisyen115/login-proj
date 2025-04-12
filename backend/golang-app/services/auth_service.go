@@ -55,7 +55,7 @@ func downloadProfileImage(imageURL string, userID uint, uploadFolder string) (st
 	return filePath, nil
 }
 
-func AuthenticateGoogleUser(idTokenStr string) (*models.User, error) {
+func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error) {
 	decoded, err := verifyGoogleToken(idTokenStr, utils.Cfg.GoogleClientID)
 	if err != nil {
 		return nil, fmt.Errorf("無法驗證 Google ID Token: %v", err)
@@ -69,11 +69,11 @@ func AuthenticateGoogleUser(idTokenStr string) (*models.User, error) {
 	}
 
 	var user models.User
-	if err := utils.Db.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		user.Username = name
 		user.Email = &email
 
-		if err := utils.Db.Create(&user).Error; err != nil {
+		if err := db.Create(&user).Error; err != nil {
 			return nil, fmt.Errorf("創建用戶失敗: %v", err)
 		}
 	}
@@ -90,7 +90,7 @@ func AuthenticateGoogleUser(idTokenStr string) (*models.User, error) {
 		*user.PictureName = fmt.Sprintf("%d.jpg", user.ID)
 
 		user.ProfileImage = &filepath
-		if err := utils.Db.Save(&user).Error; err != nil {
+		if err := db.Save(&user).Error; err != nil {
 			return nil, fmt.Errorf("保存用戶头像失败: %v", err)
 		}
 	}
@@ -102,7 +102,7 @@ func AuthenticateGoogleUser(idTokenStr string) (*models.User, error) {
 	}
 	*user.LastLogin = time.Now()
 
-	if err := utils.Db.Save(&user).Error; err != nil {
+	if err := db.Save(&user).Error; err != nil {
 		return nil, fmt.Errorf("保存用户登录时间失败: %v", err)
 	}
 

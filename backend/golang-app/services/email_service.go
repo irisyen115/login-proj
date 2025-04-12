@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"gorm.io/gorm"
 )
 
-func SendAuthenticationEmail(username string) map[string]interface{} {
+func SendAuthenticationEmail(username string, db *gorm.DB) map[string]interface{} {
 	var user models.User
-	result := utils.Db.Where("username = ?", username).First(&user)
+	result := db.Where("username = ?", username).First(&user)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -29,7 +29,7 @@ func SendAuthenticationEmail(username string) map[string]interface{} {
 	}
 
 	var passwordVerify models.PasswordVerify
-	utils.Db.Where("user_id = ?", user.ID).Order("valid_until desc").First(&passwordVerify)
+	db.Where("user_id = ?", user.ID).Order("valid_until desc").First(&passwordVerify)
 	currentTime := time.Now()
 
 	var newPasswordVerify models.PasswordVerify
@@ -42,7 +42,7 @@ func SendAuthenticationEmail(username string) map[string]interface{} {
 			ValidUntil:         currentTime.Add(15 * time.Minute),
 			UserID:             user.ID,
 		}
-		utils.Db.Create(&newPasswordVerify)
+		db.Create(&newPasswordVerify)
 	}
 
 	subject := "帳戶綁定確認"
@@ -58,9 +58,9 @@ func SendAuthenticationEmail(username string) map[string]interface{} {
 	return map[string]interface{}{"message": "驗證信已發送，請重設您的密碼"}
 }
 
-func SendEmailVerification(username string) map[string]interface{} {
+func SendEmailVerification(username string, db *gorm.DB) map[string]interface{} {
 	var user models.User
-	result := utils.Db.Where("username = ?", username).First(&user)
+	result := db.Where("username = ?", username).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			fmt.Println("使用者不存在")
@@ -74,7 +74,7 @@ func SendEmailVerification(username string) map[string]interface{} {
 	}
 
 	var emailVerify models.EmailVerify
-	utils.Db.Where("user_id = ?", user.ID).Order("valid_until desc").First(&emailVerify)
+	db.Where("user_id = ?", user.ID).Order("valid_until desc").First(&emailVerify)
 	currentTime := time.Now()
 	var newEmailVerify models.EmailVerify
 	if emailVerify.EmailVerifyCode != "" && currentTime.Before(emailVerify.ValidUntil) {
@@ -85,7 +85,7 @@ func SendEmailVerification(username string) map[string]interface{} {
 			ValidUntil:      currentTime.Add(15 * time.Minute),
 			UserID:          user.ID,
 		}
-		utils.Db.Create(&newEmailVerify)
+		db.Create(&newEmailVerify)
 	}
 
 	subject := "帳戶綁定確認"
@@ -100,14 +100,14 @@ func SendEmailVerification(username string) map[string]interface{} {
 	}
 	return map[string]interface{}{"message": "驗證碼已發送，請檢查電子郵件"}
 }
-func SendEmailCode(username string, code string) gin.H {
+func SendEmailCode(username string, db *gorm.DB, code string) gin.H {
 	var user models.User
-	if err := models.DB.Where("username = ?", username).First(&user).Error; err != nil {
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
 		return gin.H{"error": "使用者不存在"}
 	}
 
 	var emailVerify models.EmailVerify
-	if err := models.DB.Where("user_id = ?", user.ID).Order("valid_until desc").First(&emailVerify).Error; err != nil {
+	if err := db.Where("user_id = ?", user.ID).Order("valid_until desc").First(&emailVerify).Error; err != nil {
 		return gin.H{"error": "未找到 email 驗證紀錄"}
 	}
 
@@ -122,9 +122,9 @@ func SendEmailCode(username string, code string) gin.H {
 	return gin.H{"message": "驗證成功，Email 已驗證"}
 }
 
-func SendRebindRequestEmail(username string) (gin.H, int) {
+func SendRebindRequestEmail(username string, db *gorm.DB) (gin.H, int) {
 	var user models.User
-	if err := models.DB.Where("username = ?", username).First(&user).Error; err != nil {
+	if err := db.Where("username = ?", username).First(&user).Error; err != nil {
 		return gin.H{"message": "找不到使用者"}, http.StatusNotFound
 	}
 

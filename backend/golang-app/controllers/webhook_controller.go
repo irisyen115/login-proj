@@ -23,21 +23,11 @@ type BindEmailRequest struct {
 func RegisterWebhookRoutes(r *gin.Engine) {
 	webhookGroup := r.Group("/webhook")
 	{
-		webhookGroup.POST("", WebhookHandlerGin)
 		webhookGroup.POST("/bind-google-email", BindGoogleEmail)
 		webhookGroup.POST("/bind-email", BindEmail)
 	}
-}
-
-func WebhookHandler(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Webhook handled", http.StatusOK)
-}
-
-func WebhookHandlerGin(c *gin.Context) {
-	w := c.Writer
-	r := c.Request
-
-	WebhookHandler(w, r)
+	r.POST("/bind-google-email", BindGoogleEmail)
+	r.POST("/bind-email", BindEmail)
 }
 
 func BindGoogleEmail(c *gin.Context) {

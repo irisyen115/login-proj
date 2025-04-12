@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"golang.org/x/net/context"
+	"gorm.io/gorm"
 )
 
 type RegisterRequest struct {
@@ -21,13 +22,13 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-func RegisterUser(data RegisterRequest) (map[string]interface{}, error) {
+func RegisterUser(data RegisterRequest, db *gorm.DB) (map[string]interface{}, error) {
 	if data.Username == "" || data.Password == "" || data.Email == "" {
 		return nil, errors.New("請提供帳號、密碼和電子郵件")
 	}
 
 	var existingUser models.User
-	if err := utils.Db.Where("email = ?", data.Email).First(&existingUser).Error; err == nil {
+	if err := db.Where("email = ?", data.Email).First(&existingUser).Error; err == nil {
 		return nil, errors.New("帳號已存在")
 	}
 
@@ -37,21 +38,21 @@ func RegisterUser(data RegisterRequest) (map[string]interface{}, error) {
 		PasswordHash: data.Password,
 	}
 
-	if err := utils.Db.Create(&newUser).Error; err != nil {
+	if err := db.Create(&newUser).Error; err != nil {
 		return nil, err
 	}
 
 	return map[string]interface{}{"user": newUser, "role": "user"}, nil
 }
 
-func LoginUser(data LoginRequest) (map[string]interface{}, error) {
+func LoginUser(data LoginRequest, db *gorm.DB) (map[string]interface{}, error) {
 
 	if data.Username == "" || data.Password == "" {
 		return nil, errors.New("請提供帳號和密碼")
 	}
 
 	var user models.User
-	if err := utils.Db.Where("username = ?", data.Username).First(&user).Error; err != nil {
+	if err := db.Where("username = ?", data.Username).First(&user).Error; err != nil {
 		return nil, errors.New("帳號或密碼錯誤")
 	}
 
@@ -61,7 +62,7 @@ func LoginUser(data LoginRequest) (map[string]interface{}, error) {
 
 	*user.LastLogin = time.Now()
 	user.LoginCount++
-	if err := utils.Db.Save(&user).Error; err != nil {
+	if err := db.Save(&user).Error; err != nil {
 		return nil, err
 	}
 
@@ -75,7 +76,7 @@ func LoginUser(data LoginRequest) (map[string]interface{}, error) {
 	}, nil
 }
 
-func GetUserByID(uid uint) (*models.User, error) {
+func GetUserByID(uid uint, db *gorm.DB) (*models.User, error) {
 	if uid == 0 {
 		return nil, nil
 	}
@@ -89,7 +90,7 @@ func GetUserByID(uid uint) (*models.User, error) {
 	}
 
 	var user models.User
-	if err := utils.Db.First(&user, uid).Error; err != nil {
+	if err := db.First(&user, uid).Error; err != nil {
 		return nil, nil
 	}
 
@@ -105,15 +106,15 @@ func GetUserByID(uid uint) (*models.User, error) {
 
 	return &user, nil
 }
-func FetchUsersData(userID uint) (interface{}, error) {
-	user, err := GetUserByID(userID)
+func FetchUsersData(userID uint, db *gorm.DB) (interface{}, error) {
+	user, err := GetUserByID(userID, db)
 	if err != nil {
 		return nil, err
 	}
 
 	if user.Role == "admin" {
 		var users []models.User
-		if err := utils.Db.Select("id", "username", "last_login", "login_count", "role").Find(&users).Error; err != nil {
+		if err := db.Select("id", "username", "last_login", "login_count", "role").Find(&users).Error; err != nil {
 			return nil, err
 		}
 		return users, nil

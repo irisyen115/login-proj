@@ -5,6 +5,8 @@ import (
 
 	"golang-app/services"
 
+	"golang-app/utils"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,6 +15,7 @@ func RegisterUserRoutes(r *gin.Engine) {
 	{
 		userGroup.GET("", GetUsers)
 	}
+	r.GET("", GetUsers)
 }
 
 func GetUsers(c *gin.Context) {
@@ -22,24 +25,11 @@ func GetUsers(c *gin.Context) {
 		return
 	}
 
-	userData, err := services.FetchUsersData(userID.(uint))
+	userData, err := services.FetchUsersData(userID.(uint), utils.Db)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err})
 		return
 	}
 
 	c.JSON(http.StatusOK, userData)
-}
-
-func UserHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "用戶資料處理成功",
-	})
-}
-
-func UserHandlerHTTP(w http.ResponseWriter, r *http.Request) {
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	UserHandler(c)
 }

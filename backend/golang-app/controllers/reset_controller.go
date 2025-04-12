@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"golang-app/services"
+	"golang-app/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,6 +14,7 @@ func RegisterResetRoutes(r *gin.Engine) {
 	{
 		reset.POST("/reset-password/:password_verify_code", ResetPassword)
 	}
+	r.POST("/reset-password/:password_verify_code", ResetPassword)
 }
 
 func ResetPassword(c *gin.Context) {
@@ -26,24 +28,11 @@ func ResetPassword(c *gin.Context) {
 		return
 	}
 
-	result, err := services.ResetUserPassword(verifyCode, json.Password)
+	result, err := services.ResetUserPassword(verifyCode, json.Password, utils.Db)
 	if err != "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": result})
-}
-
-func ResetHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "密碼已重設",
-	})
-}
-
-func ResetHandlerHTTP(w http.ResponseWriter, r *http.Request) {
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	ResetHandler(c)
 }

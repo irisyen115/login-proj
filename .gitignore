@@ -8,4 +8,6 @@
 *venv*
 *.history*
 *error.log*
+*go.mod*
+*go.sum*
 !.env.example

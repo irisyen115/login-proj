@@ -1,44 +1,49 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net/http"
 	"os"
+	"runtime/debug"
 
 	"golang-app/config"
 	"golang-app/controllers"
 	"golang-app/models"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/rs/cors"
 )
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if err := godotenv.Load(); err != nil {
+		log.Println("⚠️ .env file not loaded:", err)
 	}
 
 	models.InitDB()
 }
 
 func main() {
-	r := mux.NewRouter()
+	r := gin.New()
+	r.Use(gin.Logger())
+	r.Use(gin.CustomRecoveryWithWriter(os.Stderr, func(c *gin.Context, err interface{}) {
+		log.Printf("🔥 panic recovered: %v\n", err)
+		debug.PrintStack()
+		c.AbortWithStatusJSON(500, gin.H{"error": "Internal Server Error"})
+	}))
 
-	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{os.Getenv("IRIS_DS_SERVER_URL")},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Content-Type", "Authorization"},
-	}).Handler(r)
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{os.Getenv("IRIS_DS_SERVER_URL")},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+	}))
 
-	r.HandleFunc("/auth", controllers.AuthHandlerHTTP).Methods("GET", "POST")
-	r.HandleFunc("/webhook", controllers.WebhookHandler).Methods("POST")
-	r.HandleFunc("/user", controllers.UserHandlerHTTP).Methods("GET", "POST")
-	r.HandleFunc("/file", controllers.FileHandlerHTTP).Methods("GET", "POST")
-	r.HandleFunc("/email", controllers.EmailHandlerHTTP).Methods("POST")
-	r.HandleFunc("/reset", controllers.ResetHandlerHTTP).Methods("POST")
+	controllers.RegisterAuthRoutes(r)
+	controllers.RegisterEmailRoutes(r)
+	controllers.RegisterFileRoutes(r)
+	controllers.RegisterResetRoutes(r)
+	controllers.RegisterUserRoutes(r)
+	controllers.RegisterWebhookRoutes(r)
 
 	cfg := config.LoadConfig()
 
@@ -49,12 +54,13 @@ func main() {
 		}
 	}
 
-	http.Handle("/", corsHandler)
-	http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+	r.GET("/test", func(c *gin.Context) {
 		log.Println("🧪 /test endpoint 被呼叫")
-		fmt.Fprintln(w, "Golang API is working!")
+		c.String(200, "Golang API is working!")
 	})
 
-	log.Fatal(http.ListenAndServe("0.0.0.0:8082", nil))
+	if err := r.Run("0.0.0.0:5000"); err != nil {
+		log.Fatalf("Internal Server Error: %v", err)
+	}
 
 }

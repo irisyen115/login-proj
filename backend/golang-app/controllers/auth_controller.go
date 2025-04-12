@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"golang-app/models"
 	"golang-app/services"
+	"golang-app/utils"
 	"net/http"
 	"time"
 
@@ -13,11 +14,15 @@ import (
 func RegisterAuthRoutes(r *gin.Engine) {
 	auth := r.Group("/auth")
 	{
-		auth.POST("/google-callback", GoogleCallback)
+		auth.POST("/google/callback", GoogleCallback)
 		auth.POST("/register", Register)
 		auth.POST("/login", Login)
 	}
+	r.POST("/login", Login)
+	r.POST("/register", Register)
+	r.POST("/google-callback", GoogleCallback)
 }
+
 func GoogleCallback(c *gin.Context) {
 	var data map[string]interface{}
 	if err := c.ShouldBindJSON(&data); err != nil {
@@ -31,7 +36,7 @@ func GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	user, err := services.AuthenticateGoogleUser(idTokenFromGoogle)
+	user, err := services.AuthenticateGoogleUser(idTokenFromGoogle, utils.Db)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Google OAuth 處理失敗: %v", err)})
 		return
@@ -59,7 +64,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	registerResponse, err := services.RegisterUser(registerRequest)
+	registerResponse, err := services.RegisterUser(registerRequest, utils.Db)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("註冊失敗: %v", err)})
 		return
@@ -89,7 +94,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	loginResponse, err := services.LoginUser(loginRequest)
+	loginResponse, err := services.LoginUser(loginRequest, utils.Db)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("登入失敗: %v", err)})
 		return
@@ -118,16 +123,4 @@ func Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "登出成功",
 	})
-}
-
-func AuthHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "郵件處理成功",
-	})
-}
-func AuthHandlerHTTP(w http.ResponseWriter, r *http.Request) {
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	AuthHandler(c)
 }

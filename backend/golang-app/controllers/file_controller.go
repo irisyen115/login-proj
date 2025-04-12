@@ -18,6 +18,8 @@ func RegisterFileRoutes(r *gin.Engine) {
 		file.POST("/upload-avatar", UploadAvatar)
 		file.GET("/get_user_image", GetUserImage)
 	}
+	r.POST("/upload-avatar", UploadAvatar)
+	r.GET("/get_user_image", GetUserImage)
 }
 
 func UploadAvatar(c *gin.Context) {
@@ -59,7 +61,7 @@ func GetUserImage(c *gin.Context) {
 		return
 	}
 
-	user, err := services.GetUserByID(uid)
+	user, err := services.GetUserByID(uid, utils.Db)
 	if err != nil || user == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "用戶未找到"})
 		return
@@ -78,30 +80,4 @@ func GetUserImage(c *gin.Context) {
 	}
 
 	c.FileAttachment(fullPath, pictureName)
-}
-
-func FileHandler(c *gin.Context) {
-	file, err := c.FormFile("file")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "檔案上傳失敗"})
-		return
-	}
-
-	err = c.SaveUploadedFile(file, "./uploaded_files/"+file.Filename)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存檔案失敗"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "檔案上傳成功",
-		"file":    file.Filename,
-	})
-}
-
-func FileHandlerHTTP(w http.ResponseWriter, r *http.Request) {
-	c, _ := gin.CreateTestContext(w)
-	c.Request = r
-
-	FileHandler(c)
 }

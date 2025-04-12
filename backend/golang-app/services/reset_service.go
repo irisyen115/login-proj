@@ -4,16 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"golang-app/models"
-	"golang-app/utils"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"gorm.io/gorm"
 )
 
-func ResetUserPassword(passwordVerifyCode, newPassword string) (string, string) {
+func ResetUserPassword(passwordVerifyCode, newPassword string, db *gorm.DB) (string, string) {
 	var passwordVerify models.PasswordVerify
-	result := utils.Db.Where("password_verify_code = ?", passwordVerifyCode).First(&passwordVerify)
+	result := db.Where("password_verify_code = ?", passwordVerifyCode).First(&passwordVerify)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -27,7 +26,7 @@ func ResetUserPassword(passwordVerifyCode, newPassword string) (string, string) 
 		}
 
 		var user models.User
-		result := utils.Db.Where("passwordVerify.UserID = ?", passwordVerify.UserID).First(&user)
+		result := db.Where("passwordVerify.UserID = ?", passwordVerify.UserID).First(&user)
 		if result.Error != nil {
 			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 				fmt.Println("使用者不存在")
@@ -36,7 +35,7 @@ func ResetUserPassword(passwordVerifyCode, newPassword string) (string, string) 
 			}
 
 			user.PasswordHash = newPassword
-			if err := utils.Db.Save(&user).Error; err != nil {
+			if err := db.Save(&user).Error; err != nil {
 				return "", fmt.Sprintf("發生錯誤: %v", err)
 			}
 

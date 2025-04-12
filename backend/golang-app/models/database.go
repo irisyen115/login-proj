@@ -1,35 +1,29 @@
 package models
 
 import (
-	"fmt"
+	"golang-app/config"
+	"golang-app/utils"
 	"log"
-	"os"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+var db *gorm.DB
 
 func InitDB() {
-	dsn := os.Getenv("SQLALCHEMY_DATABASE_URI")
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	cfg := config.LoadConfig()
+	dsn := cfg.SQLAlchemyDatabaseURI // 確保這個是正確的資料庫連接字符串
+
+	var err error
+	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("無法連接資料庫: %v", err)
+		log.Fatalf("資料庫連接失敗: %v", err)
 	}
+	utils.Db = db
 
-	DB = db
-	fmt.Println("✅ 成功連接到資料庫")
-
-	err = db.AutoMigrate(
-		&User{},
-		&EmailVerify{},
-		&PasswordVerify{},
-		&LineBindingUser{},
-	)
-	if err != nil {
-		log.Fatalf("資料表建立失敗: %v", err)
+	// 確保資料庫成功連接
+	if db == nil {
+		log.Fatal("資料庫未成功初始化")
 	}
-
-	fmt.Println("📦 資料表建立完成")
 }
