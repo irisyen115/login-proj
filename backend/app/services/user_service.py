@@ -3,6 +3,7 @@ from models.database import db
 from config import Config
 import redis
 from services.auth_service import update_login_cache_state
+from datetime import datetime
 
 redis_client = redis.StrictRedis(host=Config.REDIS_HOST, port=Config.REDIS_PORT, decode_responses=True)
 
@@ -57,8 +58,13 @@ def fetch_users_data(user_id):
         return users_data
     elif user.role == "user":
         user_list = [user]
-        users_data = [user_col.to_dict() for user_col in user_list]
-        return users_data
+        users_data = []
+
+        for user_col in user_list:
+            user_dict = user_col.to_dict()
+            if isinstance(user_dict.get('last_login'), str):
+                user_dict['last_login'] = datetime.fromisoformat(user_dict['last_login'])
+            users_data.append(user_dict)
     return {"error": "未知的角色"}
 
 def user_key(uid):
