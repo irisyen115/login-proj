@@ -97,10 +97,7 @@ func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error
 
 	utils.UpdateLoginCacheState(user.ID)
 
-	if user.LastLogin == nil {
-		user.LastLogin = new(time.Time)
-	}
-	*user.LastLogin = time.Now()
+	user.LastLogin = models.CustomTime(time.Now())
 
 	if err := db.Save(&user).Error; err != nil {
 		return nil, fmt.Errorf("保存用户登录时间失败: %v", err)
@@ -209,7 +206,7 @@ func BindLineUIDToUserEmail(c *gin.Context, db *gorm.DB, lineUID string, user *m
 		"message":     "綁定成功，請檢查您的 Email",
 		"username":    user.Username,
 		"role":        user.Role,
-		"last_login":  user.LastLogin.Format(time.RFC3339),
+		"last_login":  user.LastLogin,
 		"login_count": user.LoginCount,
 	})
 }

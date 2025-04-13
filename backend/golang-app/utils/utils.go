@@ -2,12 +2,14 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"golang-app/config"
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,11 +29,23 @@ type User struct {
 }
 
 var (
-	Cfg          config.Config
+	Cfg          *config.Config
 	RedisClient  *redis.Client
 	Db           *gorm.DB
 	GoogleClient *oauth2.Service
 )
+
+func InitRedis(cfg *config.Config) {
+	Cfg = cfg
+	RedisClient = redis.NewClient(&redis.Options{
+		Addr: Cfg.RedisHost + ":" + strconv.Itoa(Cfg.RedisPort),
+	})
+
+	_, err := RedisClient.Ping(context.Background()).Result()
+	if err != nil {
+		log.Fatal("Redis 連接錯誤: ", err)
+	}
+}
 
 func GenerateResetToken(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -63,9 +77,20 @@ func UpdateLoginCacheState(uid uint) {
 			log.Println("Error unmarshalling cached data:", err)
 			return
 		}
+
 		userData["last_login"] = time.Now().UTC().Format(time.RFC3339)
-		userData["login_count"] = userData["login_count"].(int) + 1
-		RedisClient.Set(RedisClient.Context(), userKey, userData, 1*time.Hour)
+		if loginCount, ok := userData["login_count"].(float64); ok {
+			userData["login_count"] = int(loginCount) + 1
+		} else {
+			log.Printf("login_count 類型錯誤: %v", userData["login_count"])
+		}
+
+		updatedData, err := json.Marshal(userData)
+		if err != nil {
+			log.Println("Error marshalling updated user data:", err)
+			return
+		}
+		RedisClient.Set(RedisClient.Context(), userKey, updatedData, 1*time.Hour)
 	} else {
 		log.Println("Redis error:", err)
 	}

@@ -1,7 +1,10 @@
 package models
 
 import (
+	"database/sql/driver"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -20,9 +23,9 @@ type User struct {
 	Username     string     `gorm:"size:50;not null" json:"username"`
 	PasswordHash string     `gorm:"type:text" json:"password_hash"`
 	Role         Role       `gorm:"type:role_enum;default:user" json:"role"`
-	CreatedAt    time.Time  `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt    time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
-	LastLogin    *time.Time `json:"last_login"`
+	CreatedAt    CustomTime `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt    CustomTime `gorm:"autoUpdateTime" json:"updated_at"`
+	LastLogin    CustomTime `json:"last_login"`
 	LoginCount   int        `gorm:"default:0" json:"login_count"`
 	ProfileImage *string    `gorm:"size:255" json:"profile_image"`
 	PictureName  *string    `gorm:"size:255" json:"picture_name"`
@@ -31,6 +34,63 @@ type User struct {
 	PasswordVerifications []PasswordVerify  `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
 	EmailVerifications    []EmailVerify     `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
 	LineBindingUsers      []LineBindingUser `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
+}
+
+type CustomTime time.Time
+
+func (ct *CustomTime) UnmarshalJSON(b []byte) error {
+	s := strings.Trim(string(b), `"`)
+	if s == "null" || s == "" {
+		*ct = CustomTime(time.Time{})
+		return nil
+	}
+
+	formats := []string{
+		time.RFC3339Nano,
+		"2006-01-02T15:04:05.999999",
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+	}
+
+	for _, format := range formats {
+		if t, err := time.Parse(format, s); err == nil {
+			*ct = CustomTime(t)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("無法解析時間格式: %s", s)
+}
+
+func (ct CustomTime) MarshalJSON() ([]byte, error) {
+	t := time.Time(ct)
+	return []byte(`"` + t.Format("2006-01-02T15:04:05.999999") + `"`), nil
+}
+
+func (ct CustomTime) IsZero() bool {
+	return time.Time(ct).IsZero()
+}
+
+func (ct CustomTime) Value() (driver.Value, error) {
+	t := time.Time(ct)
+	if t.IsZero() {
+		return nil, nil
+	}
+	return t, nil
+}
+
+func (ct *CustomTime) Scan(value interface{}) error {
+	if value == nil {
+		*ct = CustomTime(time.Time{})
+		return nil
+	}
+	switch v := value.(type) {
+	case time.Time:
+		*ct = CustomTime(v)
+		return nil
+	default:
+		return fmt.Errorf("cannot convert %v to CustomTime", value)
+	}
 }
 
 func (u *User) SetPassword(password string) error {
@@ -48,8 +108,7 @@ func (u *User) CheckPassword(password string) bool {
 }
 
 func (u *User) UpdateLastLogin() {
-	now := time.Now()
-	u.LastLogin = &now
+	u.LastLogin = CustomTime(time.Now())
 	u.LoginCount++
 }
 

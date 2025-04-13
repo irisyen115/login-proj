@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 
 	"golang-app/services"
@@ -11,11 +12,7 @@ import (
 )
 
 func RegisterUserRoutes(r *gin.Engine) {
-	userGroup := r.Group("/users")
-	{
-		userGroup.GET("", GetUsers)
-	}
-	r.GET("", GetUsers)
+	r.GET("/users", GetUsers)
 }
 
 func GetUsers(c *gin.Context) {
@@ -25,9 +22,16 @@ func GetUsers(c *gin.Context) {
 		return
 	}
 
-	userData, err := services.FetchUsersData(userID.(uint), utils.Db)
+	uid, ok := userID.(uint)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "使用者 ID 無效"})
+		return
+	}
+
+	log.Printf("utils.Db is nil? %v", utils.Db == nil)
+	userData, err := services.FetchUsersData(uid, utils.Db)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 

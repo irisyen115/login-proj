@@ -2,8 +2,10 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"golang-app/models"
 	"golang-app/utils"
+	"log"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -36,6 +38,7 @@ func RegisterUser(data RegisterRequest, db *gorm.DB) (map[string]interface{}, er
 		Username:     data.Username,
 		Email:        &data.Email,
 		PasswordHash: data.Password,
+		Role:         "user",
 	}
 
 	if err := db.Create(&newUser).Error; err != nil {
@@ -60,7 +63,8 @@ func LoginUser(data LoginRequest, db *gorm.DB) (map[string]interface{}, error) {
 		return nil, errors.New("帳號或密碼錯誤")
 	}
 
-	*user.LastLogin = time.Now()
+	user.LastLogin = models.CustomTime(time.Now())
+
 	user.LoginCount++
 	if err := db.Save(&user).Error; err != nil {
 		return nil, err
@@ -80,7 +84,9 @@ func GetUserByID(uid uint, db *gorm.DB) (*models.User, error) {
 	if uid == 0 {
 		return nil, nil
 	}
-
+	if db == nil {
+		return nil, fmt.Errorf("DB is nil")
+	}
 	cachedUserData, err := utils.RedisClient.Get(context.Background(), utils.UserKey(uid)).Result()
 	if err != nil && err != redis.Nil {
 		return nil, err
@@ -91,9 +97,12 @@ func GetUserByID(uid uint, db *gorm.DB) (*models.User, error) {
 
 	var user models.User
 	if err := db.First(&user, uid).Error; err != nil {
-		return nil, nil
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, gorm.ErrRecordNotFound
+		}
+		return nil, err
 	}
-
+	user.LastLogin = models.CustomTime(time.Now())
 	userData, err := user.ToJSON()
 	if err != nil {
 		return nil, err
@@ -106,21 +115,33 @@ func GetUserByID(uid uint, db *gorm.DB) (*models.User, error) {
 
 	return &user, nil
 }
+
 func FetchUsersData(userID uint, db *gorm.DB) (interface{}, error) {
 	user, err := GetUserByID(userID, db)
 	if err != nil {
-		return nil, err
-	}
-
-	if user.Role == "admin" {
-		var users []models.User
-		if err := db.Select("id", "username", "last_login", "login_count", "role").Find(&users).Error; err != nil {
-			return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("使用者不存在")
 		}
-		return users, nil
-	} else if user.Role == "user" {
-		return []models.User{*user}, nil
+		return nil, fmt.Errorf("取得使用者資料時發生錯誤: %v", err)
 	}
 
-	return nil, errors.New("未知的角色")
+	var usersData []models.User
+
+	switch user.Role {
+	case "admin":
+		if err := db.Select("id, username, last_login, login_count, role").Find(&usersData).Error; err != nil {
+			return nil, fmt.Errorf("查詢用戶資料失敗: %v", err)
+		}
+
+	case "user":
+		for i := range usersData {
+			usersData[i].LastLogin = models.CustomTime(time.Now())
+		}
+		usersData = append(usersData, *user)
+	default:
+		log.Printf("未知的角色: %s", user.Role)
+		return nil, fmt.Errorf("未知的角色: %s", user.Role)
+	}
+
+	return usersData, nil
 }

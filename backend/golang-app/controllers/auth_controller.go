@@ -46,7 +46,7 @@ func GoogleCallback(c *gin.Context) {
 		"message":     "Google 登入成功",
 		"username":    user.Username,
 		"role":        user.Role,
-		"last_login":  user.LastLogin.Format(time.RFC3339),
+		"last_login":  user.LastLogin,
 		"login_count": user.LoginCount,
 	}
 
