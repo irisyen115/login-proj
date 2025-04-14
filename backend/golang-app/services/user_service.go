@@ -70,7 +70,7 @@ func LoginUser(data LoginRequest, db *gorm.DB) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	utils.UpdateLoginCacheState(user.ID)
+	utils.UpdateLoginCacheState(user.ID, db)
 
 	return map[string]interface{}{
 		"user_id":     user.ID,
