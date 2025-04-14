@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"golang-app/config"
+	"golang-app/models"
 	"log"
 	"math/rand"
 	"net/http"
@@ -18,20 +19,9 @@ import (
 	"gorm.io/gorm"
 )
 
-type User struct {
-	ID           uint       `gorm:"primaryKey"`
-	Username     string     `json:"username"`
-	Email        string     `json:"email"`
-	ProfileImage string     `json:"profile_image"`
-	PictureName  string     `json:"picture_name"`
-	LastLogin    *time.Time `json:"last_login"`
-	LoginCount   int        `json:"login_count"`
-}
-
 var (
 	Cfg          *config.Config
 	RedisClient  *redis.Client
-	Db           *gorm.DB
 	GoogleClient *oauth2.Service
 )
 
@@ -60,14 +50,24 @@ func UserKey(uid uint) string {
 	return fmt.Sprintf("user:%d", uid)
 }
 
-func UpdateLoginCacheState(uid uint) {
+func UpdateLoginCacheState(uid uint, db *gorm.DB) error {
+	if models.DB == nil {
+		log.Println("[錯誤] GORM DB 尚未初始化")
+		return fmt.Errorf("GORM DB 尚未初始化")
+	}
+	if RedisClient == nil {
+		log.Println("[錯誤] RedisClient 尚未初始化")
+		return fmt.Errorf("RedisClient 尚未初始化")
+	}
+
 	userKey := UserKey(uid)
+
 	cached, err := RedisClient.Get(RedisClient.Context(), userKey).Result()
 	if err == redis.Nil {
-		var user User
-		if err := Db.First(&user, uid).Error; err != nil {
+		var user models.User
+		if err := models.DB.First(&user, uid).Error; err != nil {
 			log.Println("Error retrieving user:", err)
-			return
+			return err
 		}
 		userData, _ := json.Marshal(user)
 		RedisClient.Set(RedisClient.Context(), userKey, userData, 1*time.Hour)
@@ -75,7 +75,7 @@ func UpdateLoginCacheState(uid uint) {
 		var userData map[string]interface{}
 		if err := json.Unmarshal([]byte(cached), &userData); err != nil {
 			log.Println("Error unmarshalling cached data:", err)
-			return
+			return err
 		}
 
 		userData["last_login"] = time.Now().UTC().Format(time.RFC3339)
@@ -88,12 +88,15 @@ func UpdateLoginCacheState(uid uint) {
 		updatedData, err := json.Marshal(userData)
 		if err != nil {
 			log.Println("Error marshalling updated user data:", err)
-			return
+			return err
 		}
 		RedisClient.Set(RedisClient.Context(), userKey, updatedData, 1*time.Hour)
 	} else {
 		log.Println("Redis error:", err)
+		return err
 	}
+
+	return nil
 }
 
 func TriggerEmail(url, recipient, subject, body string) (map[string]interface{}, error) {

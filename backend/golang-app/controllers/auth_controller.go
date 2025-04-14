@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"golang-app/models"
 	"golang-app/services"
-	"golang-app/utils"
 	"net/http"
 	"time"
 
@@ -36,7 +35,7 @@ func GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	user, err := services.AuthenticateGoogleUser(idTokenFromGoogle, utils.Db)
+	user, err := services.AuthenticateGoogleUser(idTokenFromGoogle, models.DB)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Google OAuth 處理失敗: %v", err)})
 		return
@@ -64,13 +63,13 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	registerResponse, err := services.RegisterUser(registerRequest, utils.Db)
+	registerResponse, err := services.RegisterUser(registerRequest, models.DB)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("註冊失敗: %v", err)})
 		return
 	}
 
-	userObj, ok := registerResponse["user"].(models.User)
+	userObj, ok := registerResponse["user"].(*models.User)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "用戶資料轉換失敗"})
 		return
@@ -94,7 +93,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	loginResponse, err := services.LoginUser(loginRequest, utils.Db)
+	loginResponse, err := services.LoginUser(loginRequest, models.DB)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("登入失敗: %v", err)})
 		return

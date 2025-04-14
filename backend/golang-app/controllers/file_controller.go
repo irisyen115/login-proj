@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"golang-app/models"
 	"golang-app/services"
 	"golang-app/utils"
 
@@ -13,11 +14,6 @@ import (
 )
 
 func RegisterFileRoutes(r *gin.Engine) {
-	file := r.Group("/file")
-	{
-		file.POST("/upload-avatar", UploadAvatar)
-		file.GET("/get_user_image", GetUserImage)
-	}
 	r.POST("/upload-avatar", UploadAvatar)
 	r.GET("/get_user_image", GetUserImage)
 }
@@ -61,7 +57,7 @@ func GetUserImage(c *gin.Context) {
 		return
 	}
 
-	user, err := services.GetUserByID(uid, utils.Db)
+	user, err := services.GetUserByID(uid, models.DB)
 	if err != nil || user == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "用戶未找到"})
 		return

@@ -3,17 +3,13 @@ package controllers
 import (
 	"net/http"
 
+	"golang-app/models"
 	"golang-app/services"
-	"golang-app/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterResetRoutes(r *gin.Engine) {
-	reset := r.Group("/reset")
-	{
-		reset.POST("/reset-password/:password_verify_code", ResetPassword)
-	}
 	r.POST("/reset-password/:password_verify_code", ResetPassword)
 }
 
@@ -28,7 +24,7 @@ func ResetPassword(c *gin.Context) {
 		return
 	}
 
-	result, err := services.ResetUserPassword(verifyCode, json.Password, utils.Db)
+	result, err := services.ResetUserPassword(verifyCode, json.Password, models.DB)
 	if err != "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err})
 		return

@@ -87,6 +87,7 @@ func GetUserByID(uid uint, db *gorm.DB) (*models.User, error) {
 	if db == nil {
 		return nil, fmt.Errorf("DB is nil")
 	}
+
 	cachedUserData, err := utils.RedisClient.Get(context.Background(), utils.UserKey(uid)).Result()
 	if err != nil && err != redis.Nil {
 		return nil, err
@@ -102,6 +103,7 @@ func GetUserByID(uid uint, db *gorm.DB) (*models.User, error) {
 		}
 		return nil, err
 	}
+
 	user.LastLogin = models.CustomTime(time.Now())
 	userData, err := user.ToJSON()
 	if err != nil {

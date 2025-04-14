@@ -18,6 +18,63 @@ const (
 	RoleGuest Role = "guest"
 )
 
+func (r *Role) UnmarshalJSON(b []byte) error {
+	s := strings.Trim(string(b), `"`)
+	if s == "" {
+		*r = ""
+		return nil
+	}
+	switch Role(s) {
+	case RoleUser, RoleAdmin, RoleGuest:
+		*r = Role(s)
+		return nil
+	default:
+		return fmt.Errorf("未知的角色: %s", s)
+	}
+}
+
+func (r Role) MarshalJSON() ([]byte, error) {
+	if r == "" {
+		return []byte(`""`), nil
+	}
+	if r == RoleUser || r == RoleAdmin || r == RoleGuest {
+		return json.Marshal(string(r))
+	}
+	return nil, fmt.Errorf("未知的角色: %s", r)
+}
+
+func (r Role) Value() (driver.Value, error) {
+	return string(r), nil
+}
+
+func (r *Role) Scan(value interface{}) error {
+	fmt.Printf("Scan 呼叫：%v\n", value)
+	if value == nil {
+		*r = RoleUser
+		return nil
+	}
+
+	str, ok := value.(string)
+	if !ok {
+		bytes, ok := value.([]byte)
+		if ok {
+			str = string(bytes)
+		} else {
+			return fmt.Errorf("無法將 %v 轉為 Role", value)
+		}
+	}
+
+	fmt.Printf("Scan 讀取的角色值: %s\n", str)
+
+	switch Role(str) {
+	case RoleUser, RoleAdmin, RoleGuest:
+		*r = Role(str)
+		return nil
+	default:
+		return fmt.Errorf("未知的角色: %s", str)
+	}
+}
+
 type User struct {
 	ID           uint       `gorm:"primaryKey" json:"id"`
 	Username     string     `gorm:"size:50;not null" json:"username"`
@@ -34,6 +91,26 @@ type User struct {
 	PasswordVerifications []PasswordVerify  `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
 	EmailVerifications    []EmailVerify     `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
 	LineBindingUsers      []LineBindingUser `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
+}
+
+func NewUser(username string, email string, password string) (*User, error) {
+	var emailPtr *string
+	if email != "" {
+		emailPtr = &email
+	}
+
+	user := &User{
+		Username: username,
+		Email:    emailPtr,
+	}
+
+	if password != "" {
+		if err := user.SetPassword(password); err != nil {
+			return nil, err
+		}
+	}
+
+	return user, nil
 }
 
 type CustomTime time.Time
@@ -120,5 +197,9 @@ func (u *User) ToJSON() (string, error) {
 func UserFromJSON(jsonStr string) (*User, error) {
 	var user User
 	err := json.Unmarshal([]byte(jsonStr), &user)
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("[DEBUG] 還原後的使用者 Role: %s\n", user.Role)
+	return &user, nil
 }

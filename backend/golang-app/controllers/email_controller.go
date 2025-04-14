@@ -3,20 +3,13 @@ package controllers
 import (
 	"net/http"
 
+	"golang-app/models"
 	"golang-app/services"
-	"golang-app/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterEmailRoutes(r *gin.Engine) {
-	email := r.Group("/email")
-	{
-		email.POST("/send-authentication", SendAuthentication)
-		email.POST("/verify-email", VerifyEmail)
-		email.POST("/verify-code", VerifyCode)
-		email.POST("/request-bind-email", RequestRebindEmail)
-	}
 	r.POST("/send-authentication", SendAuthentication)
 	r.POST("/verify-email", VerifyEmail)
 	r.POST("/verify-code", VerifyCode)
@@ -33,7 +26,7 @@ func SendAuthentication(c *gin.Context) {
 		return
 	}
 
-	result := services.SendAuthenticationEmail(req.Username, utils.Db)
+	result := services.SendAuthenticationEmail(req.Username, models.DB)
 	c.JSON(http.StatusOK, result)
 }
 
@@ -47,7 +40,7 @@ func VerifyEmail(c *gin.Context) {
 		return
 	}
 
-	result := services.SendEmailVerification(req.Username, utils.Db)
+	result := services.SendEmailVerification(req.Username, models.DB)
 	if errMsg, ok := result["error"]; ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
 		return
@@ -67,7 +60,7 @@ func VerifyCode(c *gin.Context) {
 		return
 	}
 
-	result := services.SendEmailCode(req.Username, utils.Db, req.VerificationCode)
+	result := services.SendEmailCode(req.Username, models.DB, req.VerificationCode)
 	if errMsg, ok := result["error"]; ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
 		return
@@ -86,7 +79,7 @@ func RequestRebindEmail(c *gin.Context) {
 		return
 	}
 
-	result, err := services.SendRebindRequestEmail(req.Username, utils.Db)
+	result, err := services.SendRebindRequestEmail(req.Username, models.DB)
 	if err != 200 {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "寄信失敗", "detail": err})
 		return

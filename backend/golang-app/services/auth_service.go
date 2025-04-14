@@ -95,7 +95,7 @@ func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error
 		}
 	}
 
-	utils.UpdateLoginCacheState(user.ID)
+	utils.UpdateLoginCacheState(user.ID, db)
 
 	user.LastLogin = models.CustomTime(time.Now())
 
