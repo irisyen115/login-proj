@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,7 +11,6 @@ import (
 	"golang-app/utils"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func RegisterFileRoutes(r *gin.Engine) {
@@ -20,21 +20,21 @@ func RegisterFileRoutes(r *gin.Engine) {
 
 func UploadAvatar(c *gin.Context) {
 	userID, exists := c.Get("user_id")
+
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "未授權"})
 		return
 	}
 
 	file, err := c.FormFile("file")
-	if err != nil {
+	if err != nil || file == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "請提供照片"})
 		return
 	}
-	db := c.MustGet("db").(*gorm.DB)
-	avatarURL, err := services.SaveUserAvatar(db, userID.(uint), file)
 
+	avatarURL, err := services.SaveUserAvatar(models.DB, userID.(uint), file)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "照片上傳錯誤: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("照片上傳錯誤: %v", err)})
 		return
 	}
 

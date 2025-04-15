@@ -5,17 +5,20 @@ import (
 	"golang-app/models"
 	"golang-app/utils"
 	"io"
+	"log"
 	"mime/multipart"
 	"os"
-	"path/filepath"
+	"path"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"gorm.io/gorm"
 )
 
 func SaveUserAvatar(db *gorm.DB, userID uint, file *multipart.FileHeader) (string, error) {
+	uploadFolder := utils.Cfg.UploadFolder
+
 	filename := fmt.Sprintf("%d.jpg", userID)
-	filepath := filepath.Join(utils.Cfg.UploadFolder, filename)
+	filepath := path.Join(uploadFolder, filename)
 
 	if err := saveUploadedFile(file, filepath); err != nil {
 		return "", err
@@ -55,9 +58,11 @@ func saveUploadedFile(file *multipart.FileHeader, dst string) error {
 
 func GetUserImageService(user *models.User) string {
 	if user.ProfileImage != nil && *user.ProfileImage != "" {
-		imagePath := filepath.Join(utils.Cfg.UploadFolder, *user.PictureName)
+		imagePath := *user.ProfileImage
 		if _, err := os.Stat(imagePath); err == nil {
 			return *user.PictureName
+		} else {
+			log.Printf("Image does not exist: %s, err: %v", imagePath, err)
 		}
 	}
 	return ""

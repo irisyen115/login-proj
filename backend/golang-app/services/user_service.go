@@ -59,18 +59,18 @@ func LoginUser(data LoginRequest, db *gorm.DB) (map[string]interface{}, error) {
 		return nil, errors.New("帳號或密碼錯誤")
 	}
 
-	if user.PasswordHash != data.Password {
+	if !user.CheckPassword(data.Password) {
 		return nil, errors.New("帳號或密碼錯誤")
 	}
+	user.UpdateLastLogin()
 
-	user.LastLogin = models.CustomTime(time.Now())
-
-	user.LoginCount++
 	if err := db.Save(&user).Error; err != nil {
 		return nil, err
 	}
 
-	utils.UpdateLoginCacheState(user.ID, db)
+	if err := utils.UpdateLoginCacheState(user.ID, db); err != nil {
+		log.Printf("更新快取失敗: %v", err)
+	}
 
 	return map[string]interface{}{
 		"user_id":     user.ID,
