@@ -84,9 +84,9 @@ type User struct {
 	UpdatedAt    CustomTime `gorm:"autoUpdateTime" json:"updated_at"`
 	LastLogin    CustomTime `json:"last_login"`
 	LoginCount   int        `gorm:"default:0" json:"login_count"`
-	ProfileImage *string    `gorm:"size:255" json:"profile_image"`
-	PictureName  *string    `gorm:"size:255" json:"picture_name"`
-	Email        *string    `gorm:"size:254" json:"email"`
+	ProfileImage string     `gorm:"size:255" json:"profile_image"`
+	PictureName  string     `gorm:"size:255" json:"picture_name"`
+	Email        string     `gorm:"size:254" json:"email"`
 
 	PasswordVerifications []PasswordVerify  `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
 	EmailVerifications    []EmailVerify     `gorm:"constraint:OnDelete:CASCADE;" json:"-"`
@@ -94,14 +94,10 @@ type User struct {
 }
 
 func NewUser(username string, email string, password string) (*User, error) {
-	var emailPtr *string
-	if email != "" {
-		emailPtr = &email
-	}
 
 	user := &User{
 		Username: username,
-		Email:    emailPtr,
+		Email:    email,
 	}
 
 	if password != "" {

@@ -29,8 +29,8 @@ func SaveUserAvatar(db *gorm.DB, userID uint, file *multipart.FileHeader) (strin
 		return "", err
 	}
 
-	user.ProfileImage = &filepath
-	user.PictureName = &filename
+	user.ProfileImage = filepath
+	user.PictureName = filename
 
 	if err := db.Save(&user).Error; err != nil {
 		return "", err
@@ -57,13 +57,27 @@ func saveUploadedFile(file *multipart.FileHeader, dst string) error {
 }
 
 func GetUserImageService(user *models.User) string {
-	if user.ProfileImage != nil && *user.ProfileImage != "" {
-		imagePath := *user.ProfileImage
+	log.Println(">> 呼叫到 GetUserImageService 囉！")
+
+	if user == nil {
+		log.Println("User is nil")
+		return ""
+	}
+
+	log.Printf("User ProfileImage value: %v", user.ProfileImage)
+	if user.ProfileImage != "" {
+		imagePath := user.ProfileImage
+		log.Printf("Profile image path: %s", imagePath)
+
 		if _, err := os.Stat(imagePath); err == nil {
-			return *user.PictureName
+			log.Println("Image exists")
+			return user.PictureName
 		} else {
 			log.Printf("Image does not exist: %s, err: %v", imagePath, err)
 		}
+	} else {
+		log.Println("ProfileImage is nil or empty")
 	}
+
 	return ""
 }

@@ -36,7 +36,7 @@ func RegisterUser(data RegisterRequest, db *gorm.DB) (map[string]interface{}, er
 
 	newUser := models.User{
 		Username:     data.Username,
-		Email:        &data.Email,
+		Email:        data.Email,
 		PasswordHash: data.Password,
 		Role:         "user",
 	}

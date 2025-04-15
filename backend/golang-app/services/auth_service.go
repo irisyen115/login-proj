@@ -71,7 +71,7 @@ func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error
 	var user models.User
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		user.Username = name
-		user.Email = &email
+		user.Email = email
 
 		if err := db.Create(&user).Error; err != nil {
 			return nil, fmt.Errorf("創建用戶失敗: %v", err)
@@ -84,14 +84,11 @@ func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error
 			return nil, fmt.Errorf("下載圖片失敗: %v", err)
 		}
 
-		if user.PictureName == nil {
-			user.PictureName = new(string)
-		}
-		*user.PictureName = fmt.Sprintf("%d.jpg", user.ID)
+		user.PictureName = fmt.Sprintf("%d.jpg", user.ID)
 
-		user.ProfileImage = &filepath
+		user.ProfileImage = filepath
 		if err := db.Save(&user).Error; err != nil {
-			return nil, fmt.Errorf("保存用戶头像失败: %v", err)
+			return nil, fmt.Errorf("保存用戶頭像失敗: %v", err)
 		}
 	}
 
@@ -100,7 +97,7 @@ func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error
 	user.LastLogin = models.CustomTime(time.Now())
 
 	if err := db.Save(&user).Error; err != nil {
-		return nil, fmt.Errorf("保存用户登录时间失败: %v", err)
+		return nil, fmt.Errorf("保存用户登錄時間失敗: %v", err)
 	}
 
 	return &user, nil
@@ -142,7 +139,7 @@ func verifyGoogleToken(googleToken string, clientID string) (*GoogleUserInfo, er
 	ctx := context.Background()
 	tokenInfo, err := idtoken.Validate(ctx, googleToken, clientID)
 	if err != nil {
-		log.Printf("Google Token 验证失败: %v", err)
+		log.Printf("Google Token 驗證失敗: %v", err)
 		return nil, fmt.Errorf("failed to verify google token: %v", err)
 	}
 
@@ -179,7 +176,7 @@ func BindLineUIDToUserEmail(c *gin.Context, db *gorm.DB, lineUID string, user *m
 	}
 
 	if binding.LineID != "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("已綁定 %s 信箱", *user.Email)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("已綁定 %s 信箱", user.Email)})
 		return
 	}
 
@@ -194,7 +191,7 @@ func BindLineUIDToUserEmail(c *gin.Context, db *gorm.DB, lineUID string, user *m
 
 	subject := "帳戶綁定確認"
 	bodyStr := "您的 Line 已綁定此 Email！"
-	_, err := utils.TriggerEmail(fmt.Sprintf("%s/send-mail", utils.Cfg.IrisDSURL), *user.Email, subject, bodyStr)
+	_, err := utils.TriggerEmail(fmt.Sprintf("%s/send-mail", utils.Cfg.IrisDSURL), user.Email, subject, bodyStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Email 發送失敗"})
 		return
