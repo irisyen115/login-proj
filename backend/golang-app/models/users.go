@@ -48,7 +48,6 @@ func (r Role) Value() (driver.Value, error) {
 }
 
 func (r *Role) Scan(value interface{}) error {
-	fmt.Printf("Scan 呼叫：%v\n", value)
 	if value == nil {
 		*r = RoleUser
 		return nil
@@ -63,9 +62,6 @@ func (r *Role) Scan(value interface{}) error {
 			return fmt.Errorf("無法將 %v 轉為 Role", value)
 		}
 	}
-
-	fmt.Printf("Scan 讀取的角色值: %s\n", str)
-
 	switch Role(str) {
 	case RoleUser, RoleAdmin, RoleGuest:
 		*r = Role(str)

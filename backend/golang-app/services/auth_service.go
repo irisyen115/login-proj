@@ -33,13 +33,21 @@ type GoogleUserInfo struct {
 }
 
 func downloadProfileImage(imageURL string, userID uint, uploadFolder string) (string, error) {
+	filePath := fmt.Sprintf("%s/%d.jpg", uploadFolder, userID)
+
+	if _, err := os.Stat(filePath); err == nil {
+		return filePath, nil
+	}
+
 	resp, err := http.Get(imageURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to download image: %v", err)
 	}
-	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to download image, status: %s", resp.Status)
+	}
 
-	filePath := fmt.Sprintf("%s/%d.jpg", uploadFolder, userID)
+	defer resp.Body.Close()
 
 	file, err := os.Create(filePath)
 	if err != nil {
@@ -85,19 +93,14 @@ func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error
 		}
 
 		user.PictureName = fmt.Sprintf("%d.jpg", user.ID)
-
 		user.ProfileImage = filepath
-		if err := db.Save(&user).Error; err != nil {
-			return nil, fmt.Errorf("保存用戶頭像失敗: %v", err)
-		}
 	}
 
+	user.LastLogin = models.CustomTime(time.Now())
 	utils.UpdateLoginCacheState(user.ID, db)
 
-	user.LastLogin = models.CustomTime(time.Now())
-
 	if err := db.Save(&user).Error; err != nil {
-		return nil, fmt.Errorf("保存用户登錄時間失敗: %v", err)
+		return nil, fmt.Errorf("保存用戶資料失敗: %v", err)
 	}
 
 	return &user, nil
@@ -106,30 +109,27 @@ func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error
 func IdentifyGoogleUserByToken(db *gorm.DB, googleToken string, username string, password string) (*models.User, error) {
 	var user models.User
 
-	if googleToken != "" {
+	switch {
+	case googleToken != "":
 		googleUserInfo, err := verifyGoogleToken(googleToken, utils.Cfg.GoogleClientID)
 		if err != nil {
-			return nil, fmt.Errorf("Google verification failed: %v", err)
+			return nil, fmt.Errorf("google verification failed: %v", err)
 		}
-
-		email := googleUserInfo.Email
-		if email == "" {
-			return nil, fmt.Errorf("Invalid Google user info: no email found")
+		if googleUserInfo.Email == "" {
+			return nil, fmt.Errorf("google 資料中無 email")
 		}
-
-		if err := db.Where("email = ?", email).First(&user).Error; err != nil {
-			return nil, fmt.Errorf("User not found with email: %s", email)
+		if err := db.Where("email = ?", googleUserInfo.Email).First(&user).Error; err != nil {
+			return nil, fmt.Errorf("找不到使用者: %s", googleUserInfo.Email)
 		}
-	} else if username != "" && password != "" {
+	case username != "" && password != "":
 		if err := db.Where("username = ?", username).First(&user).Error; err != nil {
-			return nil, fmt.Errorf("User not found with username: %s", username)
+			return nil, fmt.Errorf("找不到使用者: %s", username)
 		}
-
-		if !user.CheckPassword(password) {
-			return nil, fmt.Errorf("Incorrect password for user: %s", username)
+		if user.PasswordHash == "" || !user.CheckPassword(password) {
+			return nil, fmt.Errorf("密碼錯誤: %s", username)
 		}
-	} else {
-		return nil, fmt.Errorf("Either google_token or username and password must be provided")
+	default:
+		return nil, fmt.Errorf("請提供 Google Token 或帳密登入資訊")
 	}
 
 	return &user, nil
@@ -138,6 +138,12 @@ func IdentifyGoogleUserByToken(db *gorm.DB, googleToken string, username string,
 func verifyGoogleToken(googleToken string, clientID string) (*GoogleUserInfo, error) {
 	ctx := context.Background()
 	tokenInfo, err := idtoken.Validate(ctx, googleToken, clientID)
+	if exp, ok := tokenInfo.Claims["exp"].(float64); ok {
+		if int64(exp) < time.Now().Unix() {
+			return nil, errors.New("token 已過期")
+		}
+	}
+
 	if err != nil {
 		log.Printf("Google Token 驗證失敗: %v", err)
 		return nil, fmt.Errorf("failed to verify google token: %v", err)
@@ -193,7 +199,7 @@ func BindLineUIDToUserEmail(c *gin.Context, db *gorm.DB, lineUID string, user *m
 	bodyStr := "您的 Line 已綁定此 Email！"
 	_, err := utils.TriggerEmail(fmt.Sprintf("%s/send-mail", utils.Cfg.IrisDSURL), user.Email, subject, bodyStr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Email 發送失敗"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "email 發送失敗"})
 		return
 	}
 

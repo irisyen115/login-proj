@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"golang-app/models"
 	"golang-app/utils"
-	"io"
 	"log"
 	"mime/multipart"
 	"os"
 	"path"
+	"path/filepath"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"gorm.io/gorm"
@@ -29,7 +29,6 @@ func SaveUserAvatar(db *gorm.DB, userID uint, file *multipart.FileHeader) (strin
 		return "", err
 	}
 
-	user.ProfileImage = filepath
 	user.PictureName = filename
 
 	if err := db.Save(&user).Error; err != nil {
@@ -40,6 +39,7 @@ func SaveUserAvatar(db *gorm.DB, userID uint, file *multipart.FileHeader) (strin
 }
 
 func saveUploadedFile(file *multipart.FileHeader, dst string) error {
+	log.Printf("儲存圖片中：%s", dst)
 	src, err := file.Open()
 	if err != nil {
 		return err
@@ -52,31 +52,24 @@ func saveUploadedFile(file *multipart.FileHeader, dst string) error {
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, src)
+	_, err = out.ReadFrom(src)
 	return err
 }
 
 func GetUserImageService(user *models.User) string {
-	log.Println(">> 呼叫到 GetUserImageService 囉！")
-
 	if user == nil {
 		log.Println("User is nil")
 		return ""
 	}
 
-	log.Printf("User ProfileImage value: %v", user.ProfileImage)
-	if user.ProfileImage != "" {
-		imagePath := user.ProfileImage
-		log.Printf("Profile image path: %s", imagePath)
-
-		if _, err := os.Stat(imagePath); err == nil {
-			log.Println("Image exists")
-			return user.PictureName
-		} else {
-			log.Printf("Image does not exist: %s, err: %v", imagePath, err)
-		}
+	uploadDir := utils.Cfg.UploadFolder
+	filename := user.PictureName
+	imagePath := filepath.Join(uploadDir, filename)
+	if _, err := os.Stat(imagePath); err == nil {
+		log.Println("Image exists")
+		return user.PictureName
 	} else {
-		log.Println("ProfileImage is nil or empty")
+		log.Printf("Image does not exist: %s, err: %v", imagePath, err)
 	}
 
 	return ""

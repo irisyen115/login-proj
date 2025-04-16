@@ -82,37 +82,64 @@ func LoginUser(data LoginRequest, db *gorm.DB) (map[string]interface{}, error) {
 
 func GetUserByID(uid uint, db *gorm.DB) (*models.User, error) {
 	if uid == 0 {
-		return nil, nil
+		return nil, fmt.Errorf("無效的 userID: %d", uid)
 	}
 	if db == nil {
 		return nil, fmt.Errorf("DB is nil")
 	}
 
-	cachedUserData, err := utils.RedisClient.Get(context.Background(), utils.UserKey(uid)).Result()
-	if err != nil && err != redis.Nil {
-		return nil, err
-	}
-	if cachedUserData != "" {
-		return models.UserFromJSON(cachedUserData)
+	ctx := context.Background()
+	redisKey := utils.UserKey(uid)
+
+	var cachedUserData string
+	var err error
+	maxRetry := 3
+
+	for i := 0; i < maxRetry; i++ {
+		cachedUserData, err = utils.RedisClient.Get(ctx, redisKey).Result()
+		if err == nil && cachedUserData != "" {
+			break
+		}
+		if err != nil && err != redis.Nil {
+			log.Printf("[Redis] 錯誤 (第 %d 次): %v", i+1, err)
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
 
+	if cachedUserData != "" {
+		user, err := models.UserFromJSON(cachedUserData)
+		if err != nil {
+			log.Printf("[Redis] 解析快取資料失敗 (userID=%d): %v", uid, err)
+		} else {
+			log.Printf("[Redis] 命中快取 (userID=%d)", uid)
+			return user, nil
+		}
+	}
+
+	log.Printf("[DB] 查詢使用者資料 (userID=%d)", uid)
 	var user models.User
 	if err := db.First(&user, uid).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("[DB] 查無使用者 (userID=%d)", uid)
 			return nil, gorm.ErrRecordNotFound
 		}
-		return nil, err
+		log.Printf("[DB] 查詢錯誤 (userID=%d): %v", uid, err)
+		return nil, fmt.Errorf("資料庫查詢錯誤: %v", err)
 	}
 
 	user.LastLogin = models.CustomTime(time.Now())
+
 	userData, err := user.ToJSON()
 	if err != nil {
-		return nil, err
+		log.Printf("[Cache] 將 user 轉換為 JSON 時發生錯誤 (userID=%d): %v", uid, err)
+		return nil, fmt.Errorf("將 user 轉換為 JSON 時發生錯誤: %v", err)
 	}
 
-	err = utils.RedisClient.SetEX(context.Background(), utils.UserKey(uid), userData, 3600*time.Second).Err()
+	err = utils.RedisClient.SetEX(ctx, redisKey, userData, 3600*time.Second).Err()
 	if err != nil {
-		return nil, err
+		log.Printf("[Cache] 寫入 Redis 失敗 (userID=%d): %v", uid, err)
+	} else {
+		log.Printf("[Cache] 寫入 Redis 成功 (userID=%d)", uid)
 	}
 
 	return &user, nil

@@ -74,6 +74,9 @@ func GetUserImage(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "圖片不存在於伺服器"})
 		return
 	}
+	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Header("Pragma", "no-cache")
+	c.Header("Expires", "0")
 
 	c.FileAttachment(fullPath, pictureName)
 }
