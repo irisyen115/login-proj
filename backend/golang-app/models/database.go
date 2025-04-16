@@ -20,5 +20,10 @@ func InitDB() {
 		log.Fatalf("資料庫連接失敗: %v", err)
 	}
 	DB = DB.Debug()
+	err = DB.AutoMigrate(&User{}, &LineBindingUser{})
+	if err != nil {
+		log.Fatalf("❌ AutoMigrate 失敗: %v", err)
+	}
+	log.Println("✅ 資料表自動建立完成")
 
 }

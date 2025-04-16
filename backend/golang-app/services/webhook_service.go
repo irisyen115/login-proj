@@ -5,30 +5,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"golang-app/utils"
-	"log"
 	"net/http"
-	"strings"
-	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type LineEvent struct {
-	ReplyToken string `json:"replyToken"`
-	Source     struct {
-		UserID string `json:"userId"`
-	} `json:"source"`
-	Message struct {
-		Text string `json:"text"`
-	} `json:"message"`
+	Events []struct {
+		Type    string `json:"type"`
+		Message struct {
+			Text string `json:"text"`
+		} `json:"message"`
+		Source struct {
+			UserID string `json:"userId"`
+		} `json:"source"`
+		ReplyToken string `json:"replyToken"`
+	} `json:"events"`
 }
 
-type LineWebhookRequest struct {
-	Events []LineEvent `json:"events"`
-}
-
-func replyMessage(replyToken string, text string) error {
+func replyMessage(replyToken, text string) error {
 	payload := map[string]interface{}{
 		"replyToken": replyToken,
-		"messages": []map[string]interface{}{
+		"messages": []map[string]string{
 			{
 				"type": "text",
 				"text": text,
@@ -36,49 +34,48 @@ func replyMessage(replyToken string, text string) error {
 		},
 	}
 
-	payloadBytes, err := json.Marshal(payload)
+	jsonPayload, _ := json.Marshal(payload)
+	req, err := http.NewRequest("POST", utils.Cfg.LineReplyURL, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %v", err)
+		return err
 	}
 
-	req, err := http.NewRequest("POST", utils.Cfg.LineReplyURL, bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %v", err)
-	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+utils.Cfg.LineAccessToken)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", utils.Cfg.LineAccessToken))
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to send reply: %v", err)
+		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("received non-OK status: %v", resp.StatusCode)
-	}
 
 	return nil
 }
 
-func HandleWebhookEvent(body []byte) (string, int) {
-	var webhookRequest LineWebhookRequest
-	if err := json.Unmarshal(body, &webhookRequest); err != nil {
-		log.Printf("Error parsing request body: %v", err)
-		return "Internal Server Error", http.StatusInternalServerError
+func HandleWebhookEvent(c *gin.Context) {
+	var body LineEvent
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.String(http.StatusInternalServerError, "Internal Server Error")
+		return
 	}
 
-	for _, event := range webhookRequest.Events {
-		if event.Message.Text != "" && strings.Contains(event.Message.Text, "綁定") {
-			loginURL := fmt.Sprintf("%s/Line-login?uid=%s", utils.Cfg.IrisDSURL, event.Source.UserID)
-			replyText := fmt.Sprintf("請點擊以下網址進行綁定：\n%s", loginURL)
-			if err := replyMessage(event.ReplyToken, replyText); err != nil {
-				log.Printf("Failed to reply message: %v", err)
-				return "Internal Server Error", http.StatusInternalServerError
+	for _, event := range body.Events {
+		if event.Type == "message" {
+			text := event.Message.Text
+			uid := event.Source.UserID
+			if contains(text, "綁定") {
+				loginURL := fmt.Sprintf("%s/Line-login?uid=%s", utils.Cfg.IrisDSURL, uid)
+				replyText := fmt.Sprintf("請點擊以下網址進行綁定：\n%s", loginURL)
+				replyMessage(event.ReplyToken, replyText)
 			}
 		}
 	}
 
-	return "OK", http.StatusOK
+	c.String(http.StatusOK, "OK")
+}
+
+func contains(source, substr string) bool {
+	return bytes.Contains([]byte(source), []byte(substr))
 }

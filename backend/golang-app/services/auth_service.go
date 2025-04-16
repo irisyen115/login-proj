@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"golang-app/utils"
@@ -15,7 +14,6 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/api/idtoken"
 
-	"github.com/gin-gonic/gin"
 	"google.golang.org/api/oauth2/v2"
 	"google.golang.org/api/people/v1"
 	"gorm.io/gorm"
@@ -168,22 +166,19 @@ func verifyGoogleToken(googleToken string, clientID string) (*GoogleUserInfo, er
 	}, nil
 }
 
-func BindLineUIDToUserEmail(c *gin.Context, db *gorm.DB, lineUID string, user *models.User) {
+func BindLineUIDToUserEmail(db *gorm.DB, lineUID string, user *models.User) error {
 	if user == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "帳號不存在"})
-		return
+		return errors.New("帳號不存在")
 	}
 
 	var binding models.LineBindingUser
 	result := db.Where("user_id = ?", user.ID).First(&binding)
 	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "資料庫查詢錯誤"})
-		return
+		return fmt.Errorf("資料庫查詢錯誤")
 	}
 
 	if binding.LineID != "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("已綁定 %s 信箱", user.Email)})
-		return
+		return fmt.Errorf("此帳號已綁定 Line")
 	}
 
 	binding = models.LineBindingUser{
@@ -191,25 +186,15 @@ func BindLineUIDToUserEmail(c *gin.Context, db *gorm.DB, lineUID string, user *m
 		LineID: lineUID,
 	}
 	if err := db.Create(&binding).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "資料寫入錯誤"})
-		return
+		return fmt.Errorf("綁定資料寫入失敗")
 	}
 
 	subject := "帳戶綁定確認"
 	bodyStr := "您的 Line 已綁定此 Email！"
 	_, err := utils.TriggerEmail(fmt.Sprintf("%s/send-mail", utils.Cfg.IrisDSURL), user.Email, subject, bodyStr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "email 發送失敗"})
-		return
+		return fmt.Errorf("email 發送失敗")
 	}
 
-	c.SetCookie("user_id", strconv.Itoa(int(user.ID)), 3600, "/", "", true, true)
-
-	c.JSON(http.StatusOK, gin.H{
-		"message":     "綁定成功，請檢查您的 Email",
-		"username":    user.Username,
-		"role":        user.Role,
-		"last_login":  user.LastLogin,
-		"login_count": user.LoginCount,
-	})
+	return nil
 }
