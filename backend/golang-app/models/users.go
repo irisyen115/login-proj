@@ -133,7 +133,7 @@ func (ct *CustomTime) UnmarshalJSON(b []byte) error {
 
 func (ct CustomTime) MarshalJSON() ([]byte, error) {
 	t := time.Time(ct)
-	return []byte(`"` + t.Format("2006-01-02T15:04:05.999999") + `"`), nil
+	return []byte(`"` + t.UTC().Format(time.RFC3339) + `"`), nil
 }
 
 func (ct CustomTime) IsZero() bool {

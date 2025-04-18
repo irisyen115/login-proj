@@ -161,10 +161,8 @@ func FetchUsersData(userID uint, db *gorm.DB) (interface{}, error) {
 		}
 
 	case "user":
-		for i := range usersData {
-			usersData[i].LastLogin = models.CustomTime(time.Now())
-		}
 		usersData = append(usersData, *user)
+
 	default:
 		log.Printf("未知的角色: %s", user.Role)
 		return nil, fmt.Errorf("未知的角色: %s", user.Role)
