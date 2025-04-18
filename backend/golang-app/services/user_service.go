@@ -108,10 +108,8 @@ func GetUserByID(uid uint, db *gorm.DB) (*models.User, error) {
 
 	if cachedUserData != "" {
 		user, err := models.UserFromJSON(cachedUserData)
-		if err != nil {
-			log.Printf("[Redis] 解析快取資料失敗 (userID=%d): %v", uid, err)
-		} else {
-			log.Printf("[Redis] 命中快取 (userID=%d)", uid)
+		if err == nil {
+			user.LastLogin = models.CustomTime(time.Now())
 			return user, nil
 		}
 	}

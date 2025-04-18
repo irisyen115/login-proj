@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"golang-app/models"
 	"golang-app/services"
@@ -14,24 +15,20 @@ func RegisterUserRoutes(r *gin.Engine) {
 }
 
 func GetUsers(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "未授權"})
-		return
-	}
-	var user models.User
-	if err := models.DB.First(&user, userID).Error; err != nil {
-		c.JSON(500, gin.H{"error": "找不到用戶"})
-		return
-	}
+	userIDCookie, err := c.Cookie("user_id")
 
-	uid, ok := userID.(uint)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "使用者 ID 無效"})
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "未登入"})
 		return
 	}
+	userID64, err := strconv.ParseUint(userIDCookie, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "無效的 user_id"})
+		return
+	}
+	userID := uint(userID64)
 
-	userData, err := services.FetchUsersData(uid, models.DB)
+	userData, err := services.FetchUsersData(userID, models.DB)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return

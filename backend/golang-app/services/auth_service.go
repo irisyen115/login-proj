@@ -78,6 +78,7 @@ func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		user.Username = name
 		user.Email = email
+		user.LastLogin = models.CustomTime(time.Now())
 
 		if err := db.Create(&user).Error; err != nil {
 			return nil, fmt.Errorf("創建用戶失敗: %v", err)
@@ -94,7 +95,6 @@ func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error
 		user.ProfileImage = filepath
 	}
 
-	user.LastLogin = models.CustomTime(time.Now())
 	utils.UpdateLoginCacheState(user.ID, db)
 
 	if err := db.Save(&user).Error; err != nil {
