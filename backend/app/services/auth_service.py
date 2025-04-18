@@ -45,6 +45,7 @@ def authenticate_google_user(id_token_str):
             return None, "無法取得使用者的 email"
 
         user = User.query.filter_by(email=email).first()
+        user.update_last_login()
         if not user:
             user = User(username=decoded.get('name'), email=email)
             db.session.add(user)
@@ -62,7 +63,6 @@ def authenticate_google_user(id_token_str):
             db.session.add(user)
 
         update_login_cache_state(user.id)
-        user.update_last_login()
         db.session.commit()
 
         return user, None

@@ -69,18 +69,18 @@ const logout = () => {
 const formatDateTime = (dateString) => {
   if (!dateString) return "無登入記錄";
 
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZoneName: 'short'
-  }).format(date);
+  const date = new Date(dateString.endsWith("Z") ? dateString : dateString + "Z");
+  return date.toLocaleString("zh-TW", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
 };
+
 
 const handleFileChange = (event) => {
   const file = event.target.files[0];
@@ -121,13 +121,13 @@ const fetchUserData = async () => {
     router.push('/');
     return;
   }
-
   username.value = sessionStorage.getItem('username');
-  const storedLoginTime = sessionStorage.getItem('lastLogin');
-  const storedLoginCount = sessionStorage.getItem('loginCount');
-  role.value = sessionStorage.getItem('role') || 'user';
-  lastLogin.value = formatDateTime(storedLoginTime);
-  loginCount.value = storedLoginCount ? parseInt(storedLoginCount, 10) : 0;
+  role.value = sessionStorage.getItem('role');
+  if (role.value === 'admin') {
+      console.log("Admin 使用者資料:", users.value);
+    } else {
+      console.log("普通使用者資料:", users.value);
+    }
 
   try {
     const response = await axios.get('/api/users', {
@@ -136,14 +136,9 @@ const fetchUserData = async () => {
     users.value = response.data;
 
     for (let i = 0; i < users.value.length; i++) {
-      users.value[i].last_login = users.value[i].last_login ? new Date(users.value[i].last_login).toLocaleString() : "無登入記錄";
+      console.log(formatDateTime(users.value[i].last_login));
+      users.value[i].last_login = formatDateTime(users.value[i].last_login);
       users.value[i].login_count = users.value[i].login_count ? parseInt(users.value[i].login_count, 10) : 0;
-    }
-
-    if (role.value === 'admin') {
-      console.log("Admin 使用者資料:", users.value);
-    } else {
-      console.log("普通使用者資料:", users.value);
     }
   } catch (error) {
     console.error("獲取用戶資料失敗:", error);

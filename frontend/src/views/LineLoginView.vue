@@ -33,32 +33,31 @@ onMounted(() => {
 const bindGoogleEmail = async (googleToken) => {
   try {
     const response = await fetch("/api/bind-google-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ google_token: googleToken, uid: uid.value }),
-        mode: "cors",
-        credentials: "include"
-      });
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ google_token: googleToken, uid: uid.value }),
+      mode: "cors",
+      credentials: "include"
+    });
 
-      console.log("API 回應狀態碼:", response.status);
-      const data = await response.json();
+    console.log("API 回應狀態碼:", response.status);
+    const data = await response.json();
 
-      if (response.ok) {
-        localStorage.setItem("token", data.token);
-        sessionStorage.setItem('role', data.role);
-        sessionStorage.setItem("username", data.username);
-        sessionStorage.setItem("lastLogin", data.last_login);
+    if (response.ok) {
+      localStorage.setItem("token", data.token);
+      sessionStorage.setItem('role', data.role);
+      sessionStorage.setItem("username", data.username);
+      sessionStorage.setItem("lastLogin", data.last_login);
 
-        console.log("登入成功，準備跳轉到 /dashboard");
-        await router.push("/dashboard");
-        console.log("已跳轉到 /dashboard");
-      } else {
-        errorMessage.value = data.error;
-      }
+      console.log("登入成功，準備跳轉到 /dashboard");
+      await router.push("/dashboard");
+    } else {
+      errorMessage.value = data.error;
+    }
   } catch (error) {
     errorMessage.value = "伺服器錯誤，請稍後再試";
   }
-}
+};
 
 const bindEmail = async () => {
   errorMessage.value = "";

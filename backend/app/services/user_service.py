@@ -33,11 +33,11 @@ def login_user(data):
         return {"error": "請提供帳號和密碼"}
 
     user = User.query.filter_by(username=username).first()
+    user.update_last_login()
     if not user or not user.check_password(password):
         return {"error": "帳號或密碼錯誤"}
 
     update_login_cache_state(user.id)
-    user.update_last_login()
     db.session.commit()
 
     return {
@@ -51,7 +51,6 @@ def fetch_users_data(user_id):
     user = get_user_by_id(user_id)
     if not user:
         return {"error": "使用者不存在"}
-
     if user.role == "admin":
         users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).all()
         users_data = [user_row._asdict() for user_row in users]
@@ -63,8 +62,9 @@ def fetch_users_data(user_id):
         for user_col in user_list:
             user_dict = user_col.to_dict()
             if isinstance(user_dict.get('last_login'), str):
-                user_dict['last_login'] = datetime.fromisoformat(user_dict['last_login'])
+                user_dict['last_login'] = datetime.fromisoformat(user_dict['last_login']).isoformat()
             users_data.append(user_dict)
+        return users_data
     return {"error": "未知的角色"}
 
 def user_key(uid):
