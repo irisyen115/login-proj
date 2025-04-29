@@ -1,5 +1,4 @@
 import os
-import json
 import random
 import string
 from datetime import datetime
@@ -10,8 +9,9 @@ from models.users import User
 from redis import StrictRedis
 from config import Config
 import requests
-from flask import jsonify, make_response
+from flask import jsonify, make_response, session
 from services.email_service import trigger_email
+from services.user_service import update_login_cache_state, generate_signed_session_id
 from models.line_binding_user import LineBindingUser
 import logging
 
@@ -20,20 +20,6 @@ redis_client = StrictRedis(host=Config.REDIS_HOST, port=Config.REDIS_PORT, decod
 def generate_reset_token(length=30):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
-def update_login_cache_state(uid):
-    try:
-        cached = redis_client.get(f"user:{uid}")
-        if cached:
-            user_data = json.loads(cached)
-            user_data['last_login'] = datetime.utcnow().isoformat()
-            user_data['login_count'] += 1
-            redis_client.setex(f"user:{uid}", 3600, json.dumps(user_data))
-        else:
-            user = User.query.get(uid)
-            if user:
-                redis_client.setex(f"user:{uid}", 3600, user.to_json())
-    except Exception as e:
-        print(e)
 
 def authenticate_google_user(id_token_str):
     try:
@@ -61,9 +47,14 @@ def authenticate_google_user(id_token_str):
             user.picture_name = filename
             db.session.add(user)
 
-        update_login_cache_state(user.id)
         user.update_last_login()
+        update_login_cache_state(user.id)
         db.session.commit()
+
+        session.permanent = True
+        session_id = generate_signed_session_id(user.id)
+        redis_client.set(session_id, str(user.id), ex=1800)
+        session['session_id'] = session_id
 
         return user, None
     except Exception as e:
@@ -79,6 +70,9 @@ def bind_line_uid_to_user_email(line_uid, user):
             binding = LineBindingUser(user_id=user.id, line_id=line_uid)
         else:
             return jsonify({"error":f"已綁定{user.email}信箱"}), 400
+
+        db.session.add(binding)
+        db.session.commit()
 
         subject = "帳戶綁定確認"
         body_str = "您的 Line 已綁定此 Email！"
@@ -98,7 +92,6 @@ def bind_line_uid_to_user_email(line_uid, user):
         response = make_response(jsonify(response_data))
         response.status_code = 200
 
-        response.set_cookie("user_id", str(user.id), httponly=True, secure=True, samesite="Strict")
         return response
 
     except Exception as e:
@@ -122,6 +115,16 @@ def identify_google_user_by_token(user_data):
 
         if not user.check_password(password):
             return jsonify({"error": "密碼錯誤"}), 400
+
+    user.update_last_login()
+    update_login_cache_state(user.id)
+    db.session.commit()
+
+    session.permanent = True
+    session_id = generate_signed_session_id(user.id)
+    redis_client.set(session_id, str(user.id), ex=1800)
+    session['session_id'] = session_id
+
     return user
 
 def verify_google_token(google_token):

@@ -2,10 +2,40 @@ from models.users import User
 from models.database import db
 from config import Config
 import redis
-from services.auth_service import update_login_cache_state
 from datetime import datetime
+from flask import session
+import uuid
+import hmac
+import hashlib
+import base64
+import logging
+import secrets
+import json
 
 redis_client = redis.StrictRedis(host=Config.REDIS_HOST, port=Config.REDIS_PORT, decode_responses=True)
+SECRET_KEY = secrets.token_hex(32)
+
+def update_login_cache_state(uid):
+    try:
+        cached = redis_client.get(f"user:{uid}")
+        if cached:
+            user_data = json.loads(cached)
+            user_data['last_login'] = datetime.utcnow().isoformat()
+            user_data['login_count'] += 1
+            redis_client.setex(f"user:{uid}", 3600, json.dumps(user_data))
+        else:
+            user = User.query.get(uid)
+            if user:
+                redis_client.setex(f"user:{uid}", 3600, user.to_json())
+    except Exception as e:
+        print(e)
+
+def generate_signed_session_id(user_id):
+    raw_session_id = str(uuid.uuid4())
+    message = f"{user_id}:{raw_session_id}".encode('utf-8')
+    signature = hmac.new(SECRET_KEY.encode('utf-8'), message, hashlib.sha256).digest()
+    signed = base64.urlsafe_b64encode(message + b"." + signature).decode('utf-8')
+    return signed
 
 def register_user(data):
     username = data.get("username")
@@ -38,6 +68,12 @@ def login_user(data):
 
     update_login_cache_state(user.id)
     user.update_last_login()
+
+    session.permanent = True
+    session_id = generate_signed_session_id(user.id)
+    redis_client.set(session_id, str(user.id), ex=1800)
+    session['session_id'] = session_id
+
     db.session.commit()
 
     return {
@@ -65,6 +101,7 @@ def fetch_users_data(user_id):
             if isinstance(user_dict.get('last_login'), str):
                 user_dict['last_login'] = datetime.fromisoformat(user_dict['last_login'])
             users_data.append(user_dict)
+        return users_data
     return {"error": "未知的角色"}
 
 def user_key(uid):
