@@ -3,7 +3,6 @@ from flask import jsonify, make_response
 from services.email_service import trigger_email
 from config import Config
 import logging
-from google.auth.transport import requests
 
 logging.basicConfig(filename="error.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -32,6 +31,7 @@ def handle_webhook_event(body):
                 if "綁定" in text:
                     login_url = f"{IRIS_DS_SERVER_URL}/Line-login?uid={uid}"
                     reply_message(event["replyToken"], f"請點擊以下網址進行綁定：\n{login_url}")
-    except Exception:
+    except Exception as e:
+        logging.error(f"發生錯誤: {e}", exc_info=True)
         return "Internal Server Error", 500
     return "OK", 200

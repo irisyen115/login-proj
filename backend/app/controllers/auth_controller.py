@@ -1,7 +1,9 @@
-from flask import Blueprint, request, jsonify, make_response, g
+from flask import Blueprint, request, jsonify, make_response, session
 from services.auth_service import authenticate_google_user
 from config import Config
 from services.user_service import login_user, register_user
+import logging
+from services.user_service import generate_signed_session_id, redis_client
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -23,8 +25,6 @@ def google_callback():
         "last_login": user.last_login.isoformat() if user.last_login else None,
         "login_count": user.login_count
     }))
-    response.set_cookie("user_id", str(user.id), httponly=True, secure=True, samesite="None", max_age=3600)
-    response.set_cookie("role", user.role, httponly=True, secure=True, samesite="None", max_age=3600)
     return response
 
 @auth_bp.route("/register", methods=["POST"])
@@ -54,8 +54,6 @@ def login():
         "last_login": login_response["last_login"].isoformat() if login_response["last_login"] else None,
         "login_count": login_response["login_count"]
     }))
-    response.set_cookie("user_id", str(login_response["user_id"]), httponly=True, secure=True, samesite="Strict")
-    response.set_cookie("role", login_response["role"], httponly=True, secure=True, samesite="Strict")
     return response
 
 @auth_bp.route("/logout")
