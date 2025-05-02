@@ -11,6 +11,7 @@ import (
 
 	"golang-app/utils"
 
+	"github.com/gin-gonic/gin"
 	"golang.org/x/net/context"
 	"google.golang.org/api/idtoken"
 
@@ -61,7 +62,7 @@ func downloadProfileImage(imageURL string, userID uint, uploadFolder string) (st
 	return filePath, nil
 }
 
-func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error) {
+func AuthenticateGoogleUser(c *gin.Context, idTokenStr string, db *gorm.DB) (*models.User, error) {
 	decoded, err := verifyGoogleToken(idTokenStr, utils.Cfg.GoogleClientID)
 	if err != nil {
 		return nil, fmt.Errorf("無法驗證 Google ID Token: %v", err)
@@ -97,6 +98,10 @@ func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error
 
 	utils.UpdateLoginCacheState(user.ID, db)
 
+	sessionID := utils.GenerateSignedSessionID(user.ID)
+	utils.RedisClient.SetEX(utils.Ctx, sessionID, fmt.Sprintf("%d", user.ID), 30*time.Minute)
+	c.SetCookie("session_id", sessionID, 1800, "/", "", false, true)
+
 	if err := db.Save(&user).Error; err != nil {
 		return nil, fmt.Errorf("保存用戶資料失敗: %v", err)
 	}
@@ -104,33 +109,38 @@ func AuthenticateGoogleUser(idTokenStr string, db *gorm.DB) (*models.User, error
 	return &user, nil
 }
 
-func IdentifyGoogleUserByToken(db *gorm.DB, googleToken string, username string, password string) (*models.User, error) {
-	var user models.User
+func IdentifyGoogleUserByToken(c *gin.Context, googleToken, username, password string) (*models.User, gin.H) {
+	var user *models.User
 
-	switch {
-	case googleToken != "":
+	if googleToken != "" {
 		googleUserInfo, err := verifyGoogleToken(googleToken, utils.Cfg.GoogleClientID)
 		if err != nil {
-			return nil, fmt.Errorf("google verification failed: %v", err)
+			return nil, gin.H{"error": "Google 驗證失敗"}
 		}
 		if googleUserInfo.Email == "" {
-			return nil, fmt.Errorf("google 資料中無 email")
+			return nil, gin.H{"error": "無法取得使用者的 email"}
 		}
-		if err := db.Where("email = ?", googleUserInfo.Email).First(&user).Error; err != nil {
-			return nil, fmt.Errorf("找不到使用者: %s", googleUserInfo.Email)
+
+		if err := models.DB.Where("email = ?", googleUserInfo.Email).First(&user).Error; err != nil {
+			return nil, gin.H{"error": "無法找到使用者"}
 		}
-	case username != "" && password != "":
-		if err := db.Where("username = ?", username).First(&user).Error; err != nil {
-			return nil, fmt.Errorf("找不到使用者: %s", username)
+	} else {
+		models.DB.Where("username = ?", username).First(&user)
+		if user == nil || !user.CheckPassword(password) {
+			return nil, gin.H{"error": "密碼錯誤"}
 		}
-		if user.PasswordHash == "" || !user.CheckPassword(password) {
-			return nil, fmt.Errorf("密碼錯誤: %s", username)
-		}
-	default:
-		return nil, fmt.Errorf("請提供 Google Token 或帳密登入資訊")
 	}
 
-	return &user, nil
+	if user != nil {
+		user.UpdateLastLogin()
+		models.DB.Save(user)
+
+		sessionID := utils.GenerateSignedSessionID(user.ID)
+		utils.RedisClient.Set(context.Background(), sessionID, user.ID, 30*time.Minute)
+		c.SetCookie("session_id", sessionID, 1800, "/", "", false, true)
+	}
+
+	return user, nil
 }
 
 func verifyGoogleToken(googleToken string, clientID string) (*GoogleUserInfo, error) {
@@ -166,35 +176,37 @@ func verifyGoogleToken(googleToken string, clientID string) (*GoogleUserInfo, er
 	}, nil
 }
 
-func BindLineUIDToUserEmail(db *gorm.DB, lineUID string, user *models.User) error {
+func BindLineUIDToUserEmail(c *gin.Context, lineUID string, user *models.User) {
 	if user == nil {
-		return errors.New("帳號不存在")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "帳號不存在"})
+		return
 	}
 
 	var binding models.LineBindingUser
-	result := db.Where("user_id = ?", user.ID).First(&binding)
-	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return fmt.Errorf("資料庫查詢錯誤")
+	result := models.DB.Where("user_id = ?", user.ID).First(&binding)
+	if result.RowsAffected > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "已綁定" + user.Email + "信箱"})
+		return
 	}
 
-	if binding.LineID != "" {
-		return fmt.Errorf("此帳號已綁定 Line")
-	}
-
-	binding = models.LineBindingUser{
+	newBinding := models.LineBindingUser{
 		UserID: user.ID,
 		LineID: lineUID,
 	}
-	if err := db.Create(&binding).Error; err != nil {
-		return fmt.Errorf("綁定資料寫入失敗")
-	}
 
-	subject := "帳戶綁定確認"
-	bodyStr := "您的 Line 已綁定此 Email！"
-	_, err := utils.TriggerEmail(fmt.Sprintf("%s/send-mail", utils.Cfg.IrisDSURL), user.Email, subject, bodyStr)
+	models.DB.Create(&newBinding)
+
+	_, err := utils.TriggerEmail(fmt.Sprintf("%s/send-mail", utils.Cfg.IrisDSURL), user.Email, "帳戶綁定確認", "您的 Line 已綁定此 Email！")
 	if err != nil {
-		return fmt.Errorf("email 發送失敗")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Email 發送失敗"})
+		return
 	}
 
-	return nil
+	c.JSON(http.StatusOK, gin.H{
+		"message":     "綁定成功，請檢查您的 Email",
+		"username":    user.Username,
+		"role":        user.Role,
+		"last_login":  user.LastLogin,
+		"login_count": user.LoginCount,
+	})
 }

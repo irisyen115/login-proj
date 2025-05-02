@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"golang-app/models"
 	"golang-app/services"
@@ -19,11 +20,24 @@ func RegisterFileRoutes(r *gin.Engine) {
 }
 
 func UploadAvatar(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userIDValue, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "未授權"})
 		return
 	}
+
+	userIDStr, ok := userIDValue.(string)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "用戶 ID 格式錯誤"})
+		return
+	}
+
+	userID64, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "無效的 user_id"})
+		return
+	}
+	userID := uint(userID64)
 
 	file, err := c.FormFile("file")
 	if err != nil || file == nil {
@@ -31,7 +45,7 @@ func UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	avatarURL, err := services.SaveUserAvatar(models.DB, userID.(uint), file)
+	avatarURL, err := services.SaveUserAvatar(models.DB, userID, file)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("照片上傳錯誤: %v", err)})
 		return
@@ -44,19 +58,26 @@ func UploadAvatar(c *gin.Context) {
 }
 
 func GetUserImage(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userIDValue, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "未授權"})
 		return
 	}
 
-	uid, ok := userID.(uint)
+	userIDStr, ok := userIDValue.(string)
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "用戶 ID 格式錯誤"})
 		return
 	}
 
-	user, err := services.GetUserByID(uid, models.DB)
+	userID64, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "無效的 user_id"})
+		return
+	}
+	userID := uint(userID64)
+
+	user, err := services.GetUserByID(userID, models.DB)
 	if err != nil || user == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "用戶未找到"})
 		return

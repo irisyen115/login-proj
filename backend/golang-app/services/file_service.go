@@ -21,6 +21,10 @@ func SaveUserAvatar(db *gorm.DB, userID uint, file *multipart.FileHeader) (strin
 	filepath := path.Join(uploadFolder, filename)
 
 	if err := saveUploadedFile(file, filepath); err != nil {
+		return "", err
+	}
+
+	var user models.User
 	if err := db.First(&user, userID).Error; err != nil {
 		return "", err
 	}
@@ -35,7 +39,6 @@ func SaveUserAvatar(db *gorm.DB, userID uint, file *multipart.FileHeader) (strin
 }
 
 func saveUploadedFile(file *multipart.FileHeader, dst string) error {
-	log.Printf("儲存圖片中：%s", dst)
 	src, err := file.Open()
 	if err != nil {
 		return err

@@ -1,39 +1,30 @@
 package main
 
 import (
-<<<<<<< HEAD
-	"log"
-	"os"
-	"runtime/debug"
-	"strconv"
-=======
-	"fmt"
+	"context"
 	"log"
 	"net/http"
 	"os"
->>>>>>> a686d04e (create a golang backend #102)
+	"runtime/debug"
+	"strings"
+	"time"
 
 	"golang-app/config"
 	"golang-app/controllers"
 	"golang-app/models"
-<<<<<<< HEAD
 	"golang-app/utils"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
-=======
-
-	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
-	"github.com/rs/cors"
->>>>>>> a686d04e (create a golang backend #102)
 )
+
+var ctx = context.Background()
 
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-<<<<<<< HEAD
 		log.Println("⚠️ .env file not loaded:", err)
 	} else {
 		log.Println("✅ .env file loaded successfully")
@@ -45,21 +36,61 @@ func init() {
 	log.Println("✅ models.InitDB() 執行完畢")
 }
 
-func UserIDMiddleware() gin.HandlerFunc {
+func SessionMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userIDStr, err := c.Cookie("user_id")
-		if err != nil || userIDStr == "" {
-			c.Next()
+		openPaths := []string{
+			"/auth/google/callback",
+			"/login",
+			"/register",
+			"/webhook",
+			"/bind-email",
+			"/bind-google-email",
+		}
+
+		for _, path := range openPaths {
+			if strings.HasPrefix(c.Request.URL.Path, path) {
+				c.Next()
+				return
+			}
+		}
+
+		sessionID, err := c.Cookie("session_id")
+		log.Printf("Session ID: %s", sessionID)
+
+		if err != nil || sessionID == "" {
+			log.Println("Session ID is None, user is not authenticated.")
+			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
 			return
 		}
 
-		userID, err := strconv.Atoi(userIDStr)
-		if err == nil {
-			c.Set("user_id", uint(userID))
+		userID, err := utils.RedisClient.Get(ctx, sessionID).Result()
+		log.Printf("User ID from Redis: %s", userID)
+
+		if err == redis.Nil || userID == "" {
+			log.Println("Invalid session ID, clearing session.")
+			clearSession(c, sessionID)
+			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
+			return
+		} else if err != nil {
+			log.Println("Redis error:", err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
 		}
 
+		utils.RedisClient.Expire(ctx, sessionID, 30*time.Minute)
+
+		c.Set("user_id", userID)
 		c.Next()
 	}
+}
+
+func clearSession(c *gin.Context, sessionID string) {
+	c.Set("user_id", nil)
+	utils.RedisClient.Del(ctx, sessionID)
+	c.SetCookie("session_id", "", -1, "/", "", false, true)
+	log.Println("Session ID cleared and user logged out.")
 }
 
 func main() {
@@ -67,13 +98,17 @@ func main() {
 	utils.InitRedis(cfg)
 	utils.Cfg = cfg
 	r := gin.New()
+	r.GET("/login", func(c *gin.Context) {
+		c.String(http.StatusOK, "Login Page")
+	})
+
 	r.Use(gin.Logger())
 	r.Use(gin.CustomRecoveryWithWriter(os.Stderr, func(c *gin.Context, err interface{}) {
 		log.Printf("🔥 panic recovered: %v\n", err)
 		debug.PrintStack()
 		c.AbortWithStatusJSON(500, gin.H{"error": "Internal Server Error"})
 	}))
-	r.Use(UserIDMiddleware())
+	r.Use(SessionMiddleware())
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{os.Getenv("IRIS_DS_SERVER_URL")},
@@ -88,31 +123,6 @@ func main() {
 	controllers.RegisterResetRoutes(r)
 	controllers.RegisterUserRoutes(r)
 	controllers.RegisterWebhookRoutes(r)
-=======
-		log.Fatal("Error loading .env file")
-	}
-
-	models.InitDB()
-}
-
-func main() {
-	r := mux.NewRouter()
-
-	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{os.Getenv("IRIS_DS_SERVER_URL")},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Content-Type", "Authorization"},
-	}).Handler(r)
-
-	r.HandleFunc("/auth", controllers.AuthHandlerHTTP).Methods("GET", "POST")
-	r.HandleFunc("/webhook", controllers.WebhookHandler).Methods("POST")
-	r.HandleFunc("/user", controllers.UserHandlerHTTP).Methods("GET", "POST")
-	r.HandleFunc("/file", controllers.FileHandlerHTTP).Methods("GET", "POST")
-	r.HandleFunc("/email", controllers.EmailHandlerHTTP).Methods("POST")
-	r.HandleFunc("/reset", controllers.ResetHandlerHTTP).Methods("POST")
-
-	cfg := config.LoadConfig()
->>>>>>> a686d04e (create a golang backend #102)
 
 	if _, err := os.Stat(cfg.UploadFolder); os.IsNotExist(err) {
 		err := os.Mkdir(cfg.UploadFolder, os.ModePerm)
@@ -121,23 +131,7 @@ func main() {
 		}
 	}
 
-<<<<<<< HEAD
-	r.GET("/test", func(c *gin.Context) {
-		log.Println("🧪 /test endpoint 被呼叫")
-		c.String(200, "Golang API is working!")
-	})
-
 	if err := r.Run("0.0.0.0:5000"); err != nil {
 		log.Fatalf("Internal Server Error: %v", err)
 	}
-=======
-	http.Handle("/", corsHandler)
-	http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("🧪 /test endpoint 被呼叫")
-		fmt.Fprintln(w, "Golang API is working!")
-	})
-
-	log.Fatal(http.ListenAndServe("0.0.0.0:8082", nil))
-
->>>>>>> a686d04e (create a golang backend #102)
 }

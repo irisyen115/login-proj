@@ -8,6 +8,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"golang.org/x/net/context"
 	"gorm.io/gorm"
@@ -48,7 +49,7 @@ func RegisterUser(data RegisterRequest, db *gorm.DB) (map[string]interface{}, er
 	return map[string]interface{}{"user": newUser, "role": "user"}, nil
 }
 
-func LoginUser(data LoginRequest, db *gorm.DB) (map[string]interface{}, error) {
+func LoginUser(c *gin.Context, data LoginRequest, db *gorm.DB) (map[string]interface{}, error) {
 
 	if data.Username == "" || data.Password == "" {
 		return nil, errors.New("請提供帳號和密碼")
@@ -63,6 +64,10 @@ func LoginUser(data LoginRequest, db *gorm.DB) (map[string]interface{}, error) {
 		return nil, errors.New("帳號或密碼錯誤")
 	}
 	user.UpdateLastLogin()
+
+	sessionID := utils.GenerateSignedSessionID(user.ID)
+	utils.RedisClient.SetEX(utils.Ctx, sessionID, fmt.Sprintf("%d", user.ID), 30*time.Minute)
+	c.SetCookie("session_id", sessionID, 1800, "/", "", false, true)
 
 	if err := db.Save(&user).Error; err != nil {
 		return nil, err

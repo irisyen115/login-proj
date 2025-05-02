@@ -17,7 +17,6 @@ func RegisterAuthRoutes(r *gin.Engine) {
 	}
 	r.POST("/login", Login)
 	r.POST("/register", Register)
-	r.POST("/google-callback", GoogleCallback)
 }
 
 func GoogleCallback(c *gin.Context) {
@@ -33,7 +32,7 @@ func GoogleCallback(c *gin.Context) {
 		return
 	}
 
-	user, err := services.AuthenticateGoogleUser(idTokenFromGoogle, models.DB)
+	user, err := services.AuthenticateGoogleUser(c, idTokenFromGoogle, models.DB)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Google OAuth 處理失敗: %v", err)})
 		return
@@ -46,9 +45,6 @@ func GoogleCallback(c *gin.Context) {
 		"last_login":  user.LastLogin,
 		"login_count": user.LoginCount,
 	}
-
-	c.SetCookie("user_id", fmt.Sprintf("%d", user.ID), 3600, "/", "", false, true)
-	c.SetCookie("role", string(user.Role), 3600, "/", "", false, true)
 
 	c.JSON(http.StatusOK, response)
 }
@@ -73,9 +69,6 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("user_id", fmt.Sprintf("%d", userObj.ID), 3600, "/", "", false, true)
-	c.SetCookie("role", "user", 3600, "/", "", false, true)
-
 	c.JSON(http.StatusOK, gin.H{
 		"message": "註冊成功",
 		"user":    userObj.Username,
@@ -91,19 +84,15 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	loginResponse, err := services.LoginUser(loginRequest, models.DB)
+	loginResponse, err := services.LoginUser(c, loginRequest, models.DB)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("登入失敗: %v", err)})
 		return
 	}
 
-	userID := fmt.Sprintf("%v", loginResponse["user_id"])
 	role, _ := loginResponse["role"].(string)
 	lastLogin, _ := loginResponse["last_login"].(time.Time)
 	loginCount, _ := loginResponse["login_count"].(int)
-
-	c.SetCookie("user_id", userID, 3600, "/", "", false, true)
-	c.SetCookie("role", role, 3600, "/", "", false, true)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":     "登入成功",

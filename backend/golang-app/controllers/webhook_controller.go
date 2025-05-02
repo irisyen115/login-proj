@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"fmt"
-	"golang-app/models"
 	"golang-app/services"
 	"net/http"
 
@@ -48,19 +47,13 @@ func bindGoogleEmail(c *gin.Context) {
 		return
 	}
 
-	user, err := services.IdentifyGoogleUserByToken(models.DB, req.GoogleToken, "", "")
+	user, err := services.IdentifyGoogleUserByToken(c, req.GoogleToken, "", "")
 	if err != nil || user == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "登入驗證失敗"})
 		return
 	}
 
-	if err := services.BindLineUIDToUserEmail(models.DB, req.UID, user); err != nil {
-		fmt.Println("❌ BindLineUIDToUserEmail 錯誤:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("綁定失敗: %v", err)})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	services.BindLineUIDToUserEmail(c, req.UID, user)
 
 }
 
@@ -85,17 +78,12 @@ func bindEmail(c *gin.Context) {
 		}
 	}
 
-	user, err := services.IdentifyGoogleUserByToken(models.DB, "", req.Username, req.Password)
+	user, err := services.IdentifyGoogleUserByToken(c, "", req.Username, req.Password)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("伺服器錯誤: %v", err)})
 		return
 	}
 
-	if err := services.BindLineUIDToUserEmail(models.DB, req.UID, user); err != nil {
-		fmt.Println("❌ BindLineUIDToUserEmail 錯誤:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("綁定失敗: %v", err)})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	services.BindLineUIDToUserEmail(c, req.UID, user)
 }

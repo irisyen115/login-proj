@@ -15,13 +15,19 @@ func RegisterUserRoutes(r *gin.Engine) {
 }
 
 func GetUsers(c *gin.Context) {
-	userIDCookie, err := c.Cookie("user_id")
-
-	if err != nil {
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "未登入"})
 		return
 	}
-	userID64, err := strconv.ParseUint(userIDCookie, 10, 32)
+
+	userIDStr, ok := userIDValue.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "使用者 ID 轉換錯誤"})
+		return
+	}
+
+	userID64, err := strconv.ParseUint(userIDStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "無效的 user_id"})
 		return
