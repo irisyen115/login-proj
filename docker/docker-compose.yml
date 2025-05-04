@@ -66,7 +66,16 @@ services:
     container_name: redis_container
     ports:
       - "6379:6379"
-
+  node_service:
+    build:
+      context: ../backend/nest-app/
+      dockerfile: Dockerfile
+    container_name: nestjs-server
+    volumes:
+      - ../backend/nest-app:/app
+      - /app/node_modules
+    working_dir: /app
+    command: ["npm", "run", "start:prod"]
   pgsql:
     image: postgres
     container_name: pgsql_container

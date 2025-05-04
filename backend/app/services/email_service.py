@@ -111,7 +111,7 @@ def send_rebind_request_email(username):
     """
     trigger_email(
         f"{Config.IRIS_DS_SERVER_URL}/send-mail",
-        "irisyen115@gmail.cpm",
+        "irisyen115@gmail.com",
         email_subject,
         email_body
     )
