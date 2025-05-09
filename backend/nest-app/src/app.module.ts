@@ -1,15 +1,4 @@
 import { Module } from '@nestjs/common';
-<<<<<<< HEAD
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-
-@Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
-})
-export class AppModule {}
-=======
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { AuthModule } from './module/auth.module';
@@ -71,4 +60,3 @@ export class AppModule implements NestModule {
       .forRoutes('*');
   }
 }
->>>>>>> 99ee142e (Setting up session login using node.js #119)
