@@ -2,15 +2,13 @@ import {
     Body,
     Controller,
     Post,
-    BadRequestException,
-    NotFoundException,
   } from '@nestjs/common';
   import { EmailService } from '../services/email.service';
   import { SendEmailDto } from '../dto/send-email.dto';
   import { VerifyEmailDto } from '../dto/verify-email.dto';
   import { VerifyCodeDto } from '../dto/verify-code.dto';
 
-  @Controller('email')
+  @Controller()
   export class EmailController {
     constructor(private readonly emailService: EmailService) {}
 

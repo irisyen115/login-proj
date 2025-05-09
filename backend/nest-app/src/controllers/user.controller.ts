@@ -5,17 +5,21 @@ import {
     Res,
     UseGuards,
     UnauthorizedException,
+    Logger,
   } from '@nestjs/common';
   import { UserService } from '../services/user.service';
   import { Response, Request } from 'express';
 
-  @Controller('user')
+  @Controller()
   export class UserController {
+      private readonly logger = new Logger(UserController.name);
+
     constructor(private readonly userService: UserService) {}
 
     @Get('users')
     async getUsers(@Req() req: Request, @Res() res: Response) {
-      const userId = req['user_id'];
+      const userId = (req as any).userId;
+
       if (!userId) {
         throw new UnauthorizedException('未授權');
       }

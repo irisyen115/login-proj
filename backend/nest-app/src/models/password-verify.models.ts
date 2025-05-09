@@ -1,31 +1,37 @@
 import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    CreateDateColumn,
-    ManyToOne,
-    JoinColumn,
-  } from 'typeorm';
-  import { User } from './user.models';
+  Column,
+  Model,
+  Table,
+  PrimaryKey,
+  AutoIncrement,
+  CreatedAt,
+  ForeignKey,
+  BelongsTo
+} from 'sequelize-typescript';
+import { User } from './user.models';
+import { DataTypes } from 'sequelize';
 
-  @Entity('password_verification')
-  export class PasswordVerify {
-    @PrimaryGeneratedColumn()
-    id: number;
+@Table({ tableName: 'password_verification', timestamps: false })
+export class PasswordVerify extends Model<PasswordVerify> {
+  @PrimaryKey
+  @AutoIncrement
+  @Column
+  declare id: number;
 
-    @CreateDateColumn({ name: 'created_at' })
-    createdAt: Date;
+  @CreatedAt
+  @Column({ field: 'created_at', defaultValue: DataTypes.NOW})
+  declare createdAt: Date;
 
-    @Column({ name: 'valid_until', type: 'timestamp' })
-    validUntil: Date;
+  @Column({ type: DataTypes.DATE, field: 'valid_until' })
+  declare validUntil: Date;
 
-    @Column({ name: 'password_verify_code', length: 50, nullable: true })
-    passwordVerifyCode: string;
+  @Column({ type: DataTypes.STRING(50), field: 'password_verify_code', allowNull: true })
+  declare passwordVerifyCode: string;
 
-    @Column({ name: 'user_id' })
-    userId: number;
+  @ForeignKey(() => User)
+  @Column({ field: 'user_id' })
+  declare userId: number;
 
-    @ManyToOne(() => User, user => user.passwordVerification, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'user_id' })
-    user: User;
-  }
+  @BelongsTo(() => User, { foreignKey: 'userId', onDelete: 'CASCADE' })
+  declare user: User;
+}

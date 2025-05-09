@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { SequelizeModule } from '@nestjs/sequelize';
 import { PasswordVerify } from '../models/password-verify.models';
 import { User } from '../models/user.models';
 import { ResetService } from '../services/reset.service';
+import { ResetController } from '../controllers/reset.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PasswordVerify, User])],
+  imports: [SequelizeModule.forFeature([PasswordVerify, User])],
+  controllers: [ResetController],
   providers: [ResetService],
+  exports: [ResetService],
 })
 export class ResetModule {}

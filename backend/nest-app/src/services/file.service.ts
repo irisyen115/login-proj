@@ -1,16 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectModel } from '@nestjs/sequelize';
 import { User } from '../models/user.models';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
+import { where } from 'sequelize';
 
 @Injectable()
 export class FileService {
   constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    @InjectModel(User)
+    private usersRepository: typeof User,
     private configService: ConfigService,
   ) {}
 
@@ -24,18 +24,17 @@ export class FileService {
 
     fs.writeFileSync(filepath, file.buffer);
 
-    const user = await this.usersRepository.findOneBy({ id: userId });
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
     user.profileImage = filepath;
     user.pictureName = filename;
-    await this.usersRepository.save(user);
 
     return filepath;
   }
 
   async getUserImage(userId: number): Promise<string | null> {
-    const user = await this.usersRepository.findOneBy({ id: userId });
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
     const uploadFolder = this.configService.get<string>('UPLOAD_FOLDER');
     if (!uploadFolder) {
       throw new Error('UPLOAD_FOLDER is not defined in Config');

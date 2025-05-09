@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { SequelizeModule } from '@nestjs/sequelize';
 import { EmailController } from '../controllers/email.controller';
 import { EmailService } from '../services/email.service';
 import { User } from '../models/user.models';
@@ -9,11 +9,11 @@ import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
-    ConfigModule, // 用來注入環境變數
-    TypeOrmModule.forFeature([User, EmailVerify, PasswordVerify]), // 注入使用到的 Entity
+    ConfigModule,
+    SequelizeModule.forFeature([User, EmailVerify, PasswordVerify]),
   ],
   controllers: [EmailController],
   providers: [EmailService],
-  exports: [EmailService], // 如果其他 Module 也需要用 EmailService 可以 export
+  exports: [EmailService],
 })
 export class EmailModule {}

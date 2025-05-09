@@ -1,4 +1,4 @@
-version: "4"
+version: "3.8"
 services:
   vue_dev:
     build:
@@ -30,6 +30,7 @@ services:
     ports:
       - "8081:80"
       - "8443:443"
+
   python-service:
     build:
       context: ../backend/
@@ -41,6 +42,7 @@ services:
     command: ["python", "app.py"]
     depends_on:
       - pgsql
+
   backup:
     build:
       context: ../backend/
@@ -52,6 +54,7 @@ services:
     command: ["python", "app.py"]
     depends_on:
       - pgsql
+
   mail-service:
     build:
       context: ../backend/
@@ -61,11 +64,13 @@ services:
       - ../backend/mail-server:/app
     working_dir: /app
     command: ["python", "mail_server.py"]
+
   redis:
     image: redis:5.0.5-alpine
     container_name: redis_container
     ports:
       - "6379:6379"
+
   node_service:
     build:
       context: ../backend/nest-app/
@@ -73,9 +78,12 @@ services:
     container_name: nestjs-server
     volumes:
       - ../backend/nest-app:/app
-      - /app/node_modules
     working_dir: /app
+    depends_on:
+      - pgsql
+      - redis
     command: ["npm", "run", "start:prod"]
+
   pgsql:
     image: postgres
     container_name: pgsql_container
@@ -87,6 +95,7 @@ services:
       - "5433:5432"
     volumes:
       - ../pg_data:/var/lib/postgresql/data
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin_container

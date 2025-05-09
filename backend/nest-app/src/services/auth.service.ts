@@ -3,48 +3,38 @@ import {
   UnauthorizedException,
   BadRequestException,
   InternalServerErrorException,
+  Inject,
+  forwardRef,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectModel } from '@nestjs/sequelize';
 import { User } from '../models/user.models';
 import { LineBindingUser } from '../models/line-binding-user.models';
-import { RedisService } from '../common/utils/redis.util';
+import { RedisService } from '../services/redis.service';
+import { UserService } from './user.service';
 import axios from 'axios';
 import { OAuth2Client } from 'google-auth-library';
 import { EmailService } from './email.service';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
+import * as fs from 'fs';
+import e from 'express';
 
 @Injectable()
 export class AuthService {
   private readonly client: OAuth2Client;
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private configService: ConfigService,
     private readonly emailService: EmailService,
-    @InjectRepository(User) private userRepo: Repository<User>,
-    @InjectRepository(LineBindingUser) private bindingRepo: Repository<LineBindingUser>,
+    @Inject(forwardRef(() => UserService))
+    private userService: UserService,
+    @InjectModel(User) private userRepo: typeof User,
+    @InjectModel(LineBindingUser) private bindingRepo: typeof LineBindingUser,
     private readonly redisService: RedisService
   ) {
     this.client = new OAuth2Client(this.configService.get('GOOGLE_CLIENT_ID'));
-  }
-
-  async updateLoginCacheState(uid: string) {
-    const client = this.redisService.getClient();
-    const key = `user:${uid}`;
-    const cached = await client.get(key);
-
-    if (cached) {
-      const userData = JSON.parse(cached);
-      userData.last_login = new Date().toISOString();
-      userData.login_count += 1;
-      await client.set(key, JSON.stringify(userData), 'EX', 3600);
-    } else {
-      const user = await this.userRepo.findOne({ where: { id: Number(uid) } });
-      if (user) {
-        await client.set(key, JSON.stringify(user), 'EX', 3600);
-      }
-    }
   }
 
   async authenticateGoogleUser(idToken: string) {
@@ -56,32 +46,46 @@ export class AuthService {
 
       const payload = ticket.getPayload();
       if (!payload) throw new UnauthorizedException('無法驗證 Google 使用者');
+
       const email = payload.email;
-      const picture = payload.picture;
       if (!email) throw new BadRequestException('無法取得使用者的 email');
 
+      if (!payload.name) {
+        throw new BadRequestException('Google 資料缺少使用者名稱');
+      }
+
+      const picture = payload.picture;
+
       let user = await this.userRepo.findOne({ where: { email } });
+
       if (!user) {
-        user = this.userRepo.create({
+        user = this.userRepo.build({
           email,
           username: payload.name,
-        });
+        } as User);
+        await user.save();
       }
 
       if (picture) {
-        const res = await axios.get(picture, { responseType: 'arraybuffer' });
-        const filename = `${user.id}.jpg`;
-        const filePath = `${this.configService.get('UPLOAD_FOLDER')}/${filename}`;
-        require('fs').writeFileSync(filePath, res.data);
+        const filePath = `${this.configService.get('UPLOAD_FOLDER')}/${user.id}.jpg`;
 
-        user.profileImage = filePath;
-        user.pictureName = filename;
+        if (!fs.existsSync(filePath)) {
+          const res = await axios.get(picture, { responseType: 'arraybuffer' });
+          fs.writeFileSync(filePath, res.data);
+
+          user.profileImage = filePath;
+          user.pictureName = `${user.id}.jpg`;
+        } else {
+          user.profileImage = filePath;
+        }
       }
 
-      await this.updateLoginCacheState(user.id.toString());
-      user.lastLogin = new Date();
-      user.loginCount = (user.loginCount || 0) + 1;
-      await this.userRepo.save(user);
+      await this.userService.updateLoginCacheState(user.id);
+      user.updateLastLogin();
+      await user.save();
+
+      const sessionId = this.userService.generateSignedSessionId(user.id);
+      await this.redisService.set(sessionId, user.id.toString(), 1800);
 
       return user;
     } catch (err) {
@@ -97,12 +101,14 @@ export class AuthService {
       throw new BadRequestException(`已綁定 ${user.email} 信箱`);
     }
 
-    const binding = this.bindingRepo.create({ userId: user.id, lineId: lineUid });
-    await this.bindingRepo.save(binding);
+    const binding = await this.bindingRepo.create({ userId: user.id, lineId: lineUid });
+    if (!binding) {
+      throw new InternalServerErrorException('綁定失敗');
+    }
 
     const emailSent = await this.emailService.triggerEmail(
-      `${this.configService.get('IRIS_DS_SERVER_URL')}/send-mail`,
       user.email,
+      '帳戶綁定確認',
       '帳戶綁定確認,您的 Line 已綁定此 Email！'
     );
 
@@ -131,14 +137,22 @@ export class AuthService {
       const email = googleUser.email;
       const user = await this.userRepo.findOne({ where: { email } });
       if (!user) {
-        const newUser = this.userRepo.create({
+        const newUser = new User({
           email,
           username: googleUser.name,
           profileImage: googleUser.picture,
-        });
-        await this.userRepo.save(newUser);
+        } as User);
+        await newUser.save();
         return newUser;
       }
+
+      const sessionId = this.userService.generateSignedSessionId(user.id);
+      await this.redisService.set(sessionId, user.id.toString(), 1800);
+
+      await this.userService.updateLoginCacheState(user.id);
+      user.updateLastLogin();
+      await user.save();
+
       return user;
     } else {
       const user = await this.userRepo.findOne({ where: { username } });
@@ -148,7 +162,6 @@ export class AuthService {
       return user;
     }
   }
-
 
   async verifyGoogleToken(token: string) {
     try {

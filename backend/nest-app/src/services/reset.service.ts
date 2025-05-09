@@ -1,21 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectModel } from '@nestjs/sequelize';
 import { PasswordVerify } from '../models/password-verify.models';
-import * as dayjs from 'dayjs';
+import { User } from '../models/user.models';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class ResetService {
   constructor(
-    @InjectRepository(PasswordVerify)
-    private passwordVerifyRepo: Repository<PasswordVerify>,
+    @InjectModel(PasswordVerify)
+    private passwordVerifyRepo: typeof PasswordVerify,
   ) {}
 
   async resetUserPassword(code: string, newPassword: string): Promise<{ message?: string; error?: string }> {
     try {
       const passwordVerify = await this.passwordVerifyRepo.findOne({
         where: { passwordVerifyCode: code },
-        relations: ['user'],
+        include: [{ model: User, as: 'user' }],
       });
 
       if (!passwordVerify) {
@@ -32,7 +32,7 @@ export class ResetService {
       }
 
       user.setPassword(newPassword);
-      await this.passwordVerifyRepo.manager.save(user);
+      await user.save();
 
       return { message: '密碼重設成功，請重新登入' };
     } catch (e) {

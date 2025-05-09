@@ -1,27 +1,32 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectModel } from '@nestjs/sequelize';
 import { User } from '../models/user.models';
 import { EmailVerify } from '../models/email-verify.models';
 import { PasswordVerify } from '../models/password-verify.models';
-import { Repository } from 'typeorm';
-import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class EmailService {
+  private readonly logger = new Logger(EmailService.name);
   constructor(
-    @InjectRepository(User)
-    private userRepo: Repository<User>,
-    @InjectRepository(EmailVerify)
-    private emailVerifyRepo: Repository<EmailVerify>,
-    @InjectRepository(PasswordVerify)
-    private passwordVerifyRepo: Repository<PasswordVerify>,
+    @InjectModel(User)
+    private userRepo: typeof User,
+    @InjectModel(EmailVerify)
+    private emailVerifyRepo: typeof EmailVerify,
+    @InjectModel(PasswordVerify)
+    private passwordVerifyRepo: typeof PasswordVerify,
     private configService: ConfigService,
   ) {}
 
   private generateCode(length: number): string {
-    return crypto.randomBytes(length).toString('hex').slice(0, length);
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
   }
 
   async triggerEmail(to: string, subject: string, body: string) {
@@ -34,7 +39,38 @@ export class EmailService {
       });
       return response.data;
     } catch (error) {
+      console.error('Email 發送失敗:', error.response || error.message);
       throw new BadRequestException('Email 發送失敗');
+    }
+  }
+
+  async sendEmailVerification(username: string) {
+    const user = await this.userRepo.findOne({ where: { username } });
+    if (!user) throw new NotFoundException('用戶不存在');
+    if (!user.email) throw new BadRequestException('未綁定 Email');
+
+    try {
+      const existing = await this.emailVerifyRepo.findOne({
+        where: { userId: user.id },
+        order: [['validUntil', 'DESC']],
+      });
+
+      if (existing && new Date() <= existing.validUntil) {
+        return { message: '驗證碼已發送，請勿重複點取' };
+      }
+
+      const code = this.generateCode(6);
+      await this.emailVerifyRepo.create({
+        emailVerifyCode: code,
+        validUntil: new Date(Date.now() + 15 * 60 * 1000),
+        userId: user.id,
+      });
+
+      await this.triggerEmail(user.email, '帳戶綁定確認', code);
+      return { message: '驗證碼已發送，請檢查電子郵件' };
+    } catch (error) {
+      console.error('發送電子郵件驗證碼時發生錯誤:', error.message);
+      throw new BadRequestException('發送電子郵件驗證碼時發生錯誤');
     }
   }
 
@@ -44,8 +80,8 @@ export class EmailService {
     if (!user.email) throw new BadRequestException('用戶未綁定 Email');
 
     const existing = await this.passwordVerifyRepo.findOne({
-      where: { user: { id: user.id } },
-      order: { validUntil: 'DESC' },
+      where: { userId: user.id },
+      order: [['validUntil', 'DESC']],
     });
 
     if (existing && new Date() <= existing.validUntil) {
@@ -53,42 +89,15 @@ export class EmailService {
     }
 
     const code = this.generateCode(30);
-    const passwordVerify = this.passwordVerifyRepo.create({
+    await this.passwordVerifyRepo.create({
       passwordVerifyCode: code,
       validUntil: new Date(Date.now() + 15 * 60 * 1000),
-      user,
-    });
-    await this.passwordVerifyRepo.save(passwordVerify);
+      userId: user.id,
+    } as PasswordVerify);
 
     const link = `${this.configService.get('IRIS_DS_SERVER_URL')}/reset-password/${code}`;
     await this.triggerEmail(user.email, '帳戶綁定確認', link);
     return { message: '驗證信已發送，請重新設置' };
-  }
-
-  async sendEmailVerification(username: string) {
-    const user = await this.userRepo.findOne({ where: { username } });
-    if (!user) throw new NotFoundException('用戶不存在');
-    if (!user.email) throw new BadRequestException('未綁定 Email');
-
-    const existing = await this.emailVerifyRepo.findOne({
-      where: { user: { id: user.id } },
-      order: { validUntil: 'DESC' },
-    });
-
-    if (existing && new Date() <= existing.validUntil) {
-      return { message: '驗證碼已發送，請勿重複點取' };
-    }
-
-    const code = this.generateCode(6);
-    const emailVerify = this.emailVerifyRepo.create({
-      emailVerifyCode: code,
-      validUntil: new Date(Date.now() + 15 * 60 * 1000),
-      user,
-    });
-    await this.emailVerifyRepo.save(emailVerify);
-
-    await this.triggerEmail(user.email, '帳戶綁定確認', code);
-    return { message: '驗證碼已發送，請檢查電子郵件' };
   }
 
   async sendEmailCode(username: string, code: string) {
@@ -96,8 +105,8 @@ export class EmailService {
     if (!user) throw new NotFoundException('用戶不存在');
 
     const record = await this.emailVerifyRepo.findOne({
-      where: { user: { id: user.id } },
-      order: { validUntil: 'DESC' },
+      where: { userId: user.id },
+      order: [['validUntil', 'DESC']],
     });
 
     if (!record || record.emailVerifyCode !== code) {

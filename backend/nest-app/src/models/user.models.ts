@@ -1,83 +1,119 @@
 import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    CreateDateColumn,
-    UpdateDateColumn,
-    OneToMany,
-    OneToOne,
-  } from 'typeorm';
-  import { PasswordVerify } from './password-verify.models';
-  import { EmailVerify } from './email-verify.models';
-  import { LineBindingUser } from './line-binding-user.models';
-  import * as bcrypt from 'bcrypt';
+  Column,
+  Model,
+  Table,
+  PrimaryKey,
+  AutoIncrement,
+  CreatedAt,
+  UpdatedAt,
+  Default,
+  AllowNull,
+  HasMany,
+  HasOne
+} from 'sequelize-typescript';
+import { IsEnum } from 'class-validator';
+import { PasswordVerify } from './password-verify.models';
+import { EmailVerify } from './email-verify.models';
+import { LineBindingUser } from './line-binding-user.models';
+import * as bcrypt from 'bcryptjs';
+import { DataTypes } from 'sequelize';
+import { CreationAttributes } from 'sequelize';
 
-  @Entity('users')
-  export class User {
-    @PrimaryGeneratedColumn()
-    id: number;
+@Table({ tableName: 'users' })
+export class User extends Model<User> {
+  @PrimaryKey
+  @AutoIncrement
+  @Column
+  declare id: number;
 
-    @Column({ length: 50 })
-    username: string;
+  @Column({ allowNull: false, type: DataTypes.STRING(50) })
+  declare username: string;
 
-    @Column({ type: 'text', nullable: true })
-    passwordHash: string;
+  @AllowNull(true)
+  @Column({ type: DataTypes.TEXT, field: 'password_hash' })
+  declare passwordHash: string;
 
-    @Column({
-      type: 'enum',
-      enum: ['user', 'admin', 'guest'],
-      default: 'user',
-    })
-    role: 'user' | 'admin' | 'guest';
+  @Default('user')
+  @IsEnum(['user', 'admin', 'guest'])
+  @Column({
+    type: DataTypes.ENUM,
+    values: ['user', 'admin', 'guest'],
+  })
+  declare role: 'user' | 'admin' | 'guest';
 
-    @CreateDateColumn({ name: 'created_at' })
-    createdAt: Date;
+  @CreatedAt
+  @Column({ field: 'created_at' })
+  declare createdAt: Date;
 
-    @UpdateDateColumn({ name: 'updated_at' })
-    updatedAt: Date;
+  @UpdatedAt
+  @Column({ field: 'updated_at' })
+  declare updatedAt: Date;
 
-    @Column({ name: 'last_login', type: 'timestamp', nullable: true })
-    lastLogin: Date;
+  @AllowNull(true)
+  @Column({ type: DataTypes.DATE, field: 'last_login' })
+  declare lastLogin: Date;
 
-    @Column({ name: 'login_count', default: 0 })
-    loginCount: number;
+  @Default(0)
+  @Column({ field: 'login_count', type: DataTypes.INTEGER, defaultValue: 0 })
+  declare loginCount: number;
 
-    @Column({ name: 'profile_image', length: 255, nullable: true })
-    profileImage: string;
 
-    @Column({ name: 'picture_name', length: 255, nullable: true })
-    pictureName: string;
+  @AllowNull(true)
+  @Column({ field: 'profile_image', type: DataTypes.STRING(255) })
+  declare profileImage: string;
 
-    @Column({ length: 254, nullable: true })
-    email: string;
+  @AllowNull(true)
+  @Column({ field: 'picture_name', type: DataTypes.STRING(255) })
+  declare pictureName: string;
 
-    // Relations
-    @OneToMany(() => PasswordVerify, pv => pv.user, { cascade: true })
-    passwordVerification: PasswordVerify[];
+  @AllowNull(true)
+  @Column({ type: DataTypes.STRING(254) })
+  declare email: string;
 
-    @OneToOne(() => EmailVerify, ev => ev.user, { cascade: true })
-    emailVerification: EmailVerify;
+  @HasMany(() => PasswordVerify, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+  declare passwordVerification: PasswordVerify[];
 
-    @OneToMany(() => LineBindingUser, lb => lb.user, { cascade: true })
-    lineBindingUser: LineBindingUser[];
+  @HasOne(() => EmailVerify, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+  declare emailVerification: EmailVerify;
 
-    // Methods
+  @HasMany(() => LineBindingUser, { foreignKey: 'userId', sourceKey: 'id', onDelete: 'CASCADE' })
+  declare lineBindingUser: LineBindingUser[];
 
-    async setPassword(password: string) {
-      this.passwordHash = await bcrypt.hash(password, 10);
-    }
-
-    async checkPassword(password: string): Promise<boolean> {
-      return bcrypt.compare(password, this.passwordHash);
-    }
-
-    updateLastLogin() {
-      this.lastLogin = new Date();
-      this.loginCount = (this.loginCount || 0) + 1;
-    }
-
-    toJSON() {
-      const { passwordHash, ...rest } = this;
-      return rest;
-    }
+  async setPassword(password: string) {
+    this.passwordHash = await bcrypt.hash(password, 10);
   }
+
+  async checkPassword(password: string): Promise<boolean> {
+    return bcrypt.compare(password, this.passwordHash);
+  }
+
+  updateLastLogin() {
+    this.lastLogin = new Date();
+    this.loginCount = (this.loginCount || 0) + 1;
+  }
+
+  toJSON() {
+    const { passwordHash, ...rest } = this;
+    return rest;
+  }
+
+  static fromJson(jsonData: any): User {
+    const rawData = jsonData.dataValues ?? jsonData;
+    if (rawData.loginCount) {
+      rawData.loginCount = Number(rawData.loginCount);
+    }
+    if (rawData.lastLogin) {
+      rawData.lastLogin = new Date(rawData.lastLogin);
+    }
+
+    if (rawData.createdAt) {
+      rawData.createdAt = new Date(rawData.createdAt);
+    }
+    if (rawData.updatedAt) {
+      rawData.updatedAt = new Date(rawData.updatedAt);
+    }
+    return User.build(rawData, { isNewRecord: false });
+  }
+
+  }
+

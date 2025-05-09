@@ -1,24 +1,35 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToOne, JoinColumn } from 'typeorm';
+import {
+  Column,
+  Model,
+  Table,
+  PrimaryKey,
+  CreatedAt,
+  ForeignKey,
+  BelongsTo
+} from 'sequelize-typescript';
 import { User } from './user.models';
+import { DataTypes } from 'sequelize';
 
-@Entity('email_verification')
-export class EmailVerify {
-  @PrimaryGeneratedColumn()
-  id: number;
+@Table({ tableName: 'email_verification', timestamps: false })
+export class EmailVerify extends Model {
+  @PrimaryKey
+  @Column({ autoIncrement: true })
+  declare id: number;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  @CreatedAt
+  @Column({ type: DataTypes.DATE, field: 'created_at', defaultValue: DataTypes.NOW })
+  declare createdAt: Date;
 
-  @Column({ name: 'valid_until', type: 'timestamp' })
-  validUntil: Date;
+  @Column({ type: DataTypes.DATE, field: 'valid_until' })
+  declare validUntil: Date;
 
-  @Column({ name: 'email_verify_code', type: 'varchar', length: 50, nullable: true })
-  emailVerifyCode: string;
+  @Column({ type: DataTypes.STRING(50), field: 'email_verify_code', allowNull: true })
+  declare emailVerifyCode: string;
 
-  @Column({ name: 'user_id', unique: true })
-  userId: number;
+  @ForeignKey(() => User)
+  @Column({ field: 'user_id', unique: true })
+  declare userId: number;
 
-  @OneToOne(() => User, user => user.emailVerification, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
-  user: User;
+  @BelongsTo(() => User, { foreignKey: 'userId', onDelete: 'CASCADE' })
+  declare user: User;
 }
