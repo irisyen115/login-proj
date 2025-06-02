@@ -1,0 +1,12 @@
+node_modules
+*.log
+*.pyc
+__pycache__/
+*.egg-info/
+build/
+dist/
+.env
+.git
+.yarn/
+.yarnrc.yml
+export COMPOSE_HTTP_TIMEOUT=300

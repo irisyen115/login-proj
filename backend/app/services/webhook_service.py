@@ -3,7 +3,8 @@ from flask import jsonify, make_response
 from services.email_service import trigger_email
 from config import Config
 import logging
-from google.auth.transport import requests
+import requests
+import traceback
 
 logging.basicConfig(filename="error.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -26,12 +27,18 @@ def reply_message(reply_token, text):
 def handle_webhook_event(body):
     try:
         for event in body.get("events", []):
-            if event.get("type") == "message":
+            if event.get("type") == "message" and event["message"].get("type") == "text":
                 text = event["message"]["text"]
                 uid = event["source"]["userId"]
                 if "綁定" in text:
                     login_url = f"{IRIS_DS_SERVER_URL}/Line-login?uid={uid}"
-                    reply_message(event["replyToken"], f"請點擊以下網址進行綁定：\n{login_url}")
-    except Exception:
+                    try:
+                        reply_message(event["replyToken"], f"請點擊以下網址進行綁定：\n{login_url}")
+                    except Exception as reply_error:
+                        print("回覆訊息時發生錯誤：", reply_error)
+                        traceback.print_exc()
+    except Exception as e:
+        print("Webhook 處理錯誤：", e)
+        traceback.print_exc()
         return "Internal Server Error", 500
     return "OK", 200

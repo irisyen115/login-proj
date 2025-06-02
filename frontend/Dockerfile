@@ -1,16 +1,11 @@
-FROM node:18
+FROM node:16
 
 WORKDIR /app
 
-COPY src/.yarnrc.yml ./
-COPY src/.yarn .yarn
+
 COPY package.json yarn.lock ./
 
-RUN yarn set version berry
-RUN corepack enable && yarn install
+RUN yarn add -D @vue/cli-plugin-unit-jest
+RUN yarn install
 
 COPY . .
-
-EXPOSE 8081
-
-CMD ["yarn", "serve", "--port", "8081"]

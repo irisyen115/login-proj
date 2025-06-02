@@ -77,6 +77,7 @@ def bind_line_uid_to_user_email(line_uid, user):
         binding = LineBindingUser.query.filter_by(user_id=user.id).first()
         if not binding:
             binding = LineBindingUser(user_id=user.id, line_id=line_uid)
+            db.session.add(binding)
         else:
             return jsonify({"error":f"已綁定{user.email}信箱"}), 400
 
@@ -86,6 +87,8 @@ def bind_line_uid_to_user_email(line_uid, user):
 
         if not email_response or "error" in email_response:
             return jsonify({"error": "Email 發送失敗"}), 500
+
+        db.session.commit()
 
         response_data = {
             "message": "綁定成功，請檢查您的 Email",

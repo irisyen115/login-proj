@@ -141,7 +141,7 @@ const goToSendAuthentication = () =>{
 }
 
 const goToRegister = () =>{
-  router.push('/register')
+  router.push('/')
 }
 
 </script>

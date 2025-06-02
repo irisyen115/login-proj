@@ -1,11 +1,17 @@
 // vue.config.js
 module.exports = {
-    chainWebpack: (config) => {
-      // 設定入口路徑
-      config.entry('app').clear().add('./main.js'); // 確保這裡是新的 src/main.js 路徑
+  chainWebpack: (config) => {
+    config.entry('app').clear().add('./main.js')
+  },
+  configureWebpack: {
+    // 其他 Webpack 配置
+  },
+  devServer: {
+    proxy: {
+      '/delete_photo': {
+        target: 'https://irisyen115.synology.me/delete_photo', // Flask API 的位置
+        changeOrigin: true,
+      },
     },
-    configureWebpack: {
-      // 其他 Webpack 配置
-    },
-  };
-  
+  },
+};

@@ -4,8 +4,10 @@ from config import Config
 import redis
 from services.auth_service import update_login_cache_state
 from datetime import datetime
+import logging
 
 redis_client = redis.StrictRedis(host=Config.REDIS_HOST, port=Config.REDIS_PORT, decode_responses=True)
+logging.basicConfig(filename="error.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def register_user(data):
     username = data.get("username")
@@ -51,6 +53,7 @@ def fetch_users_data(user_id):
     user = get_user_by_id(user_id)
     if not user:
         return {"error": "使用者不存在"}
+    logging.error("user.role: %s", user.role)
 
     if user.role == "admin":
         users = User.query.with_entities(User.id, User.username, User.last_login, User.login_count, User.role).all()
@@ -65,6 +68,7 @@ def fetch_users_data(user_id):
             if isinstance(user_dict.get('last_login'), str):
                 user_dict['last_login'] = datetime.fromisoformat(user_dict['last_login'])
             users_data.append(user_dict)
+        return users_data
     return {"error": "未知的角色"}
 
 def user_key(uid):
