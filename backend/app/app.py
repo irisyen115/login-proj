@@ -13,7 +13,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 app.config.from_object(Config)
 
-CORS(app, supports_credentials=True, origins=[Config.IRIS_DS_SERVER_URL])
+CORS(app, supports_credentials=True, origins=[Config.SERVER_URL])
 init_db(app)
 
 if not os.path.exists(app.config["UPLOAD_FOLDER"]):

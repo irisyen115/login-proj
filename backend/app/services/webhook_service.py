@@ -8,7 +8,7 @@ import traceback
 
 logging.basicConfig(filename="error.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
-IRIS_DS_SERVER_URL = Config.IRIS_DS_SERVER_URL
+SERVER_URL = Config.SERVER_URL
 LINE_REPLY_URL = Config.LINE_REPLY_URL
 LINE_ACCESS_TOKEN = Config.LINE_ACCESS_TOKEN
 
@@ -31,7 +31,7 @@ def handle_webhook_event(body):
                 text = event["message"]["text"]
                 uid = event["source"]["userId"]
                 if "綁定" in text:
-                    login_url = f"{IRIS_DS_SERVER_URL}/Line-login?uid={uid}"
+                    login_url = f"{SERVER_URL}/Line-login?uid={uid}"
                     try:
                         reply_message(event["replyToken"], f"請點擊以下網址進行綁定：\n{login_url}")
                     except Exception as reply_error:

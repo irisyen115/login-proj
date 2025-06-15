@@ -14,6 +14,8 @@ services:
     command: ["yarn", "serve", "--port", "8081"]
     stdin_open: true
     tty: true
+    networks:
+      - shared_net
 
   nginx_server:
     image: nginx:latest
@@ -24,14 +26,15 @@ services:
       - backup
     volumes:
       - ../frontend:/usr/share/nginx/html
-      - ../../Upload_goole_photos-/src/face_image:/usr/share/nginx/html/images
-      - /root/Upload_goole_photos-/src/downloaded_albums:/usr/share/nginx/html/downloaded_albums
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ../nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
-      - ../nginx/ssl:/etc/nginx/ssl
+      - ../nginx/conf.d:/etc/nginx/conf.d
+      - ../../upload_google_photos/src/face_image:/usr/share/nginx/html/images
+      - ../../upload_google_photos/src/downloaded_albums:/usr/share/nginx/html/downloaded_albums
     ports:
       - "8081:80"
       - "8443:443"
+    networks:
+      - shared_net
   python-service:
     build:
       context: ../backend/
@@ -43,6 +46,8 @@ services:
     command: ["python", "app.py"]
     depends_on:
       - pgsql
+    networks:
+      - shared_net
   backup:
     build:
       context: ../backend/
@@ -54,6 +59,8 @@ services:
     command: ["python", "app.py"]
     depends_on:
       - pgsql
+    networks:
+      - shared_net
   mail-service:
     build:
       context: ../backend/
@@ -63,12 +70,15 @@ services:
       - ../backend/mail-server:/app
     working_dir: /app
     command: ["python", "mail_server.py"]
+    networks:
+      - shared_net
   redis:
     image: redis:5.0.5-alpine
     container_name: redis_container
     ports:
       - "6379:6379"
-
+    networks:
+      - shared_net
   pgsql:
     image: postgres
     container_name: pgsql_container
@@ -80,14 +90,11 @@ services:
       - "5433:5432"
     volumes:
       - ../pg_data:/var/lib/postgresql/data
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin_container
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: adminpassword
-    ports:
-      - "8080:80"
-
+    networks:
+      - shared_net
 volumes:
   pg_data:
+
+networks:
+  shared_net:
+    external: true

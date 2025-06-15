@@ -1,15 +1,30 @@
 module.exports = {
-    extends: [
-      'plugin:vue/vue3-essential', // 使用 Vue 3 配置
-      'eslint:recommended'         // 使用 ESLint 推薦的基本規則
-    ],
-    plugins: ['vue'],              // 使用 Vue 插件
-    parserOptions: {
-      parser: 'babel-eslint',      // 使用 babel-eslint 解析器
+  root: true,
+  env: {
+    browser: true,
+    node: true,
+    es2021: true,
+  },
+  parser: '@babel/eslint-parser',
+  parserOptions: {
+    requireConfigFile: false, // 如果你沒有 babel.config.js，可加這行
+    ecmaVersion: 2021,
+    sourceType: 'module',
+    babelOptions: {
+      presets: ['@babel/preset-env'],
     },
-    rules: {
-      'no-unused-vars': 'off',     // 關閉 no-unused-vars 規則
-      'no-undef': 'off',           // 關閉 no-undef 規則
-    },
-  };
-  
+  },
+  extends: [
+    'eslint:recommended',
+    'plugin:vue/vue3-recommended', // Vue 2 用這個，如果是 Vue 3 用 'plugin:vue/vue3-recommended'
+  ],
+  plugins: [
+    'vue'
+  ],
+  rules: {
+    // 在這裡自訂規則，例如：
+    'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+    'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+  }
+}
+

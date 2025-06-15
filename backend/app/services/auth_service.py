@@ -83,7 +83,7 @@ def bind_line_uid_to_user_email(line_uid, user):
 
         subject = "帳戶綁定確認"
         body_str = "您的 Line 已綁定此 Email！"
-        email_response = trigger_email(f"{Config.IRIS_DS_SERVER_URL}/send-mail", user.email, subject, body_str)
+        email_response = trigger_email(f"{Config.SERVER_URL}/send-mail", user.email, subject, body_str)
 
         if not email_response or "error" in email_response:
             return jsonify({"error": "Email 發送失敗"}), 500

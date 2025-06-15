@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve --watch-poll",
-    "build": "vue-cli-service build",
+    "build": "vue-cli-service build --verbose --stats-children",
     "lint": "vue-cli-service lint",
     "dev": "CHOKIDAR_USEPOLLING=true vue-cli-service serve"
   },
@@ -22,11 +22,11 @@
     "@vue/cli-plugin-eslint": "~4.5.15",
     "@vue/cli-service": "~4.5.15",
     "@vue/compiler-sfc": "^3.5.13",
-    "babel-eslint": "^10.1.0",
-    "eslint": "^6.8.0",
-    "eslint-plugin-vue": "^9.32.0",
+    "@babel/eslint-parser": "^7.21.3",
+    "eslint": "^8.40.0",
+    "eslint-plugin-vue": "^9.11.0",
     "vue-loader": "^17.3.1",
-    "vue-template-compiler": "^2.6.11"
+    "@vue/cli": "^5.0.0"
   },
   "eslintConfig": {
     "root": true,
@@ -38,9 +38,12 @@
       "eslint:recommended"
     ],
     "parserOptions": {
-      "parser": "babel-eslint"
+      "parser": "@babel/eslint-parser"
     },
     "rules": {}
+  },
+  "resolutions": {
+    "eslint-webpack-plugin": "^3.2.0"
   },
   "browserslist": [
     "> 1%",

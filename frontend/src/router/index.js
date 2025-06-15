@@ -5,6 +5,8 @@ import DashboardView from '../views/DashboardView.vue';
 import ResetPassword from '../views/ResetPassword.vue';
 import SendAuthentication from '../views/SendAuthentication.vue'
 import LineLoginView from '../views/LineLoginView.vue';
+import PhotoBoardView from '../views/PhotoBoardView.vue';
+import BatchView from '../views/BatchView.vue';
 
 const routes = [
   {
@@ -31,6 +33,16 @@ const routes = [
     path: '/dashboard',
     name: 'dashboard',
     component: DashboardView,
+  },
+  {
+    path: '/photoBoard',
+    name: 'photoBoard',
+    component: PhotoBoardView,
+  },
+  {
+    path: '/batch',
+    name: 'batch',
+    component: BatchView,
   },
   {
     path: '/reset-password/:key_certificate',

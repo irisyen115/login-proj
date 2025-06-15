@@ -1,11 +1,16 @@
-FROM node:16
+FROM node:18
 
 WORKDIR /app
 
+RUN corepack enable && corepack prepare yarn@3.5.1 --activate
 
-COPY package.json yarn.lock ./
+# 複製整個 monorepo（注意這點！）
+COPY . .
 
-RUN yarn add -D @vue/cli-plugin-unit-jest
+# 安裝所有工作區依賴
 RUN yarn install
 
-COPY . .
+# 切換到 login-page 子目錄
+WORKDIR /app/packages/login-page
+
+CMD ["yarn", "serve", "--port", "8081"]

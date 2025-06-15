@@ -1,5 +1,7 @@
 // vue.config.js
 module.exports = {
+  lintOnSave: false,
+
   chainWebpack: (config) => {
     config.entry('app').clear().add('./main.js')
   },

@@ -39,23 +39,34 @@
         </tbody>
       </table>
 
-      <div>
-        <h3>照片列表</h3>
-        <form>
-          <div v-for="record in uploadRecords" :key="record.photo_id" class="image-item">
-            <label>
-              <input type="checkbox" v-model="selected" :value="record.photo_id" />
-              <img
-                :src="`https://irisyen115.synology.me/downloaded_albums/${encodeURIComponent(record.filename)}`"
-                alt="圖片"
-                width="150"
-              />
-              {{ record.photo_id }}
-            </label>
-          </div>
-          <button type="button" @click="deleteSelected">刪除所選</button>
-        </form>
-      </div>
+      <template>
+        <div class="photo-list">
+          <h3>照片列表</h3>
+          <form>
+            <div class="image-grid">
+              <div
+                v-for="record in uploadRecords"
+                :key="record.photo_id"
+                class="image-item"
+              >
+                <label>
+                  <input
+                    type="checkbox"
+                    v-model="selected"
+                    :value="record.photo_id"
+                  />
+                  <img
+                    v-lazy="`https://irisyen115.synology.me/downloaded_albums/${encodeURIComponent(record.filename)}`"
+                    alt="圖片"
+                  />
+                  <p>{{ record.photo_id }}</p>
+                </label>
+              </div>
+            </div>
+            <button type="button" @click="deleteSelected">刪除所選</button>
+          </form>
+        </div>
+      </template>
 
       <button @click="logout">登出</button>
     </div>
@@ -315,6 +326,42 @@
 
   input[type="file"] {
     margin-bottom: 10px;
+  }
+
+  .photo-list {
+    padding: 1rem;
+  }
+
+  .image-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1rem;
+    justify-items: center;
+  }
+
+  .image-item {
+    width: 100%;
+    max-width: 150px;
+    text-align: center;
+  }
+
+  .image-item img {
+    width: 100%;
+    height: auto;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+
+  @media (max-width: 1024px) {
+    .image-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .image-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 
   </style>

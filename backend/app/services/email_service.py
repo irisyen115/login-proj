@@ -9,7 +9,7 @@ from sqlalchemy import desc
 import requests
 from config import Config
 
-IRIS_DS_SERVER_URL = Config.IRIS_DS_SERVER_URL
+SERVER_URL = Config.SERVER_URL
 
 def generate_reset_token(length=30):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
@@ -35,8 +35,8 @@ def send_authentication_email(username):
         db.session.commit()
 
     subject = "帳戶綁定確認"
-    body_str = f'{IRIS_DS_SERVER_URL}/reset-password/{new_password_verify.password_verify_code}'
-    email_response = trigger_email(f"{IRIS_DS_SERVER_URL}/send-mail", user.email, subject, body_str)
+    body_str = f'{SERVER_URL}/reset-password/{new_password_verify.password_verify_code}'
+    email_response = trigger_email(f"{SERVER_URL}/send-mail", user.email, subject, body_str)
 
     if "error" in email_response:
         return {"error": "Email 發送失敗"}
@@ -65,7 +65,7 @@ def send_email_verification(username):
 
     subject = "帳戶綁定確認"
     body_str = f'{new_email_verify.email_verify_code}'
-    email_response = trigger_email(f"{IRIS_DS_SERVER_URL}/send-mail", user.email, subject, body_str)
+    email_response = trigger_email(f"{SERVER_URL}/send-mail", user.email, subject, body_str)
 
     if "error" in email_response:
         return {"error": "Email 發送失敗"}
@@ -110,7 +110,7 @@ def send_rebind_request_email(username):
 請客服人員儘速手動處理此請求。
     """
     trigger_email(
-        f"{Config.IRIS_DS_SERVER_URL}/send-mail",
+        f"{Config.SERVER_URL}/send-mail",
         "irisyen115@gmail.cpm",
         email_subject,
         email_body

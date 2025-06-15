@@ -12,7 +12,7 @@ class Config:
     GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
     LINE_REPLY_URL = os.getenv("LINE_REPLY_URL")
     LINE_ACCESS_TOKEN = os.getenv("LINE_ACCESS_TOKEN")
-    IRIS_DS_SERVER_URL = os.getenv("IRIS_DS_SERVER_URL")
+    SERVER_URL = os.getenv("SERVER_URL")
     REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
     REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
     UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")
