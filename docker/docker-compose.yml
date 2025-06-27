@@ -28,8 +28,8 @@ services:
       - ../frontend:/usr/share/nginx/html
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf
       - ../nginx/conf.d:/etc/nginx/conf.d
-      - ../../upload_google_photos/src/face_image:/usr/share/nginx/html/images
-      - ../../upload_google_photos/src/downloaded_albums:/usr/share/nginx/html/downloaded_albums
+      - ../../photo_syncer/src/face_image:/usr/share/nginx/html/images
+      - ../../photo_syncer/src/downloaded_albums:/usr/share/nginx/html/downloaded_albums
     ports:
       - "8081:80"
       - "8443:443"
